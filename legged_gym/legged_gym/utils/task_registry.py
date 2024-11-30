@@ -48,11 +48,13 @@ class TaskRegistry():
         self.env_cfgs = {}
         self.train_cfgs = {}
     
+    # register task class(vecenv) and config
     def register(self, name: str, task_class: VecEnv, env_cfg: LeggedRobotCfg, train_cfg: LeggedRobotCfgPPO):
         self.task_classes[name] = task_class
         self.env_cfgs[name] = env_cfg
         self.train_cfgs[name] = train_cfg
     
+    # 
     def get_task_class(self, name: str) -> VecEnv:
         return self.task_classes[name]
     
@@ -63,6 +65,7 @@ class TaskRegistry():
         env_cfg.seed = train_cfg.seed
         return env_cfg, train_cfg
     
+    # 创建一个已有的环境或从提供的配置文件创建一个环境
     def make_env(self, name, args=None, env_cfg=None) -> Tuple[VecEnv, LeggedRobotCfg]:
         """ Creates an environment either from a registered namme or from the provided config file.
 
@@ -80,16 +83,20 @@ class TaskRegistry():
         """
         # if no args passed get command line arguments
         if args is None:
+            # 获取命令行参数
             args = get_args()
         # check if there is a registered env with that name
         if name in self.task_classes:
+            # 从注册的类中获取任务类
             task_class = self.get_task_class(name)
         else:
             raise ValueError(f"Task with name: {name} was not registered")
         if env_cfg is None:
             # load config files
+            # 从注册的类中获取环境配置
             env_cfg, _ = self.get_cfgs(name)
         # override cfg from args (if specified)
+        # 若调用时传入了arg，则使用arg里的cfg更新原有的配置
         env_cfg, _ = update_cfg_from_args(env_cfg, None, args)
         set_seed(env_cfg.seed)
         # parse sim params (convert to dict first)
@@ -102,6 +109,7 @@ class TaskRegistry():
                             headless=args.headless)
         return env, env_cfg
 
+    # 从注册的名字或者提供的配置文件创建一个训练算法
     def make_alg_runner(self, env, name=None, args=None, train_cfg=None, init_wandb=True, log_root="default", **kwargs) -> Tuple[OnPolicyRunner, LeggedRobotCfgPPO]:
         """ Creates the training algorithm  either from a registered namme or from the provided config file.
 
@@ -156,6 +164,7 @@ class TaskRegistry():
             log_root = LEGGED_GYM_ROOT_DIR + f"/logs/{args.proj_name}/" + args.resumeid
             resume = True
         if resume:
+            # 如果resume为True，则加载之前训练的模型
             # load previously trained model
             print(log_root)
             print(train_cfg.runner.load_run)

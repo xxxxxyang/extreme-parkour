@@ -140,17 +140,29 @@ class PPO:
         self.actor_critic.train()
 
     def act(self, obs, critic_obs, info, hist_encoding=False):
+        """
+            用于根据观测值计算动作
+            Args:   obs: torch.Tensor, 观测值, 包含proprioceptive, scan, priv_states
+                    critic_obs: torch.Tensor, critc的观测值, 只包含proprioceptive, scan
+                    info: dict, 环境信息
+                    hist_encoding: bool 是否使用历史编码
+        """
         if self.actor_critic.is_recurrent:
             self.transition.hidden_states = self.actor_critic.get_hidden_states()
         # Compute the actions and values, use proprio to compute estimated priv_states then actions, but store true priv_states
         if self.train_with_estimated_states:
+            # 若使用估计的priv_states训练，则将priv_states替换为估计的priv_states
             obs_est = obs.clone()
+            # 使用estimator估计priv_states
             priv_states_estimated = self.estimator(obs_est[:, :self.num_prop])
+            # 将估计的priv_states放入obs中
             obs_est[:, self.num_prop+self.num_scan:self.num_prop+self.num_scan+self.priv_states_dim] = priv_states_estimated
+            # 使用估计的 priv_states 通过actor_critic计算动作
             self.transition.actions = self.actor_critic.act(obs_est, hist_encoding).detach()
         else:
             self.transition.actions = self.actor_critic.act(obs, hist_encoding).detach()
 
+        # Compute and store the values and log probabilities
         self.transition.values = self.actor_critic.evaluate(critic_obs).detach()
         self.transition.actions_log_prob = self.actor_critic.get_actions_log_prob(self.transition.actions).detach()
         self.transition.action_mean = self.actor_critic.action_mean.detach()
@@ -158,6 +170,7 @@ class PPO:
         self.transition.observations = obs
         self.transition.critic_observations = critic_obs
 
+        # 返回动作
         return self.transition.actions
     
     def process_env_step(self, rewards, dones, infos):

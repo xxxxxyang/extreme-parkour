@@ -28,6 +28,8 @@
 #
 # Copyright (c) 2021 ETH Zurich, Nikita Rudin
 
+# 基于策略梯度的强化学习算法
+
 import time
 import os
 from collections import deque
@@ -47,6 +49,7 @@ import sys
 from copy import copy, deepcopy
 import warnings
 
+# 使用PPO算法进行训练的类
 class OnPolicyRunner:
 
     def __init__(self,
@@ -108,6 +111,8 @@ class OnPolicyRunner:
             [self.env.num_actions],
         )
 
+        # learn 属性是一个类型为函数的属性，用于执行学习过程
+        # 当 if_depth 为 False 时，使用 learn_RL 函数，否则使用 learn_vision 函数
         self.learn = self.learn_RL if not self.if_depth else self.learn_vision
             
         # Log
@@ -118,6 +123,8 @@ class OnPolicyRunner:
         self.current_learning_iteration = 0
         
 
+    # num_learning_iterations: 学习迭代次数
+    # init_at_random_ep_len: 是否在每次学习迭代开始时随机初始化 episode 长度
     def learn_RL(self, num_learning_iterations, init_at_random_ep_len=False):
         mean_value_loss = 0.
         mean_surrogate_loss = 0.
@@ -133,29 +140,44 @@ class OnPolicyRunner:
         #     self.writer = SummaryWriter(log_dir=self.log_dir, flush_secs=10)
         if init_at_random_ep_len:
             self.env.episode_length_buf = torch.randint_like(self.env.episode_length_buf, high=int(self.env.max_episode_length))
+        # 观测数据：obs, critic_obs, infos
         obs = self.env.get_observations()
         privileged_obs = self.env.get_privileged_observations()
         critic_obs = privileged_obs if privileged_obs is not None else obs
         obs, critic_obs = obs.to(self.device), critic_obs.to(self.device)
         infos = {}
         infos["depth"] = self.env.depth_buffer.clone().to(self.device) if self.if_depth else None
+        # 使用 actor_critic 进行训练(ppo) train()方法继承自nn.Module
         self.alg.actor_critic.train() # switch to train mode (for dropout for example)
 
+        # 存储每个 episode 的信息
         ep_infos = []
+        # 双端队列，用于存储最近 100 个 episode 的奖励值
         rewbuffer = deque(maxlen=100)
+        # 双端队列，用于存储最近 100 个 episode 的探索奖励值
         rew_explr_buffer = deque(maxlen=100)
+        # 双端队列，用于存储最近 100 个 episode 的熵奖励值
         rew_entropy_buffer = deque(maxlen=100)
+        # 双端队列，用于存储最近 100 个 episode 的长度(步数)
         lenbuffer = deque(maxlen=100)
+        # 一个张量，表示当前 episode 的奖励值
+        # self.env.num_envs 表示形状等于并行环境的数量 dtype=torch.float 表示张量的数据类型 device=self.device 表示张量的设备
         cur_reward_sum = torch.zeros(self.env.num_envs, dtype=torch.float, device=self.device)
+        # 一个张量，表示当前 episode 的探索奖励值
         cur_reward_explr_sum = torch.zeros(self.env.num_envs, dtype=torch.float, device=self.device)
+        # 一个张量，表示当前 episode 的熵奖励值
         cur_reward_entropy_sum = torch.zeros(self.env.num_envs, dtype=torch.float, device=self.device)
+        # 一个张量，表示当前 episode 的长度(步数)
         cur_episode_length = torch.zeros(self.env.num_envs, dtype=torch.float, device=self.device)
 
+        # 计算总的学习迭代次数 ? 为什么要加上当前的学习迭代次数
         tot_iter = self.current_learning_iteration + num_learning_iterations
         self.start_learning_iteration = copy(self.current_learning_iteration)
 
+        # 
         for it in range(self.current_learning_iteration, tot_iter):
             start = time.time()
+            # 每隔一定的迭代次数更新历史编码
             hist_encoding = it % self.dagger_update_freq == 0
 
             # Rollout

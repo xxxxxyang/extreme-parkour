@@ -85,6 +85,7 @@ class StateHistoryEncoder(nn.Module):
         output = self.linear_output(output)
         return output
 
+# Actor-Critic model
 class Actor(nn.Module):
     def __init__(self, num_prop, 
                  num_scan, 
@@ -206,6 +207,7 @@ class Actor(nn.Module):
         scan = obs[:, self.num_prop:self.num_prop + self.num_scan]
         return self.scan_encoder(scan)
 
+# RMA(recurrent multilayer attention) 循环多层注意力
 class ActorCriticRMA(nn.Module):
     is_recurrent = False
     def __init__(self,  num_prop,
@@ -278,11 +280,15 @@ class ActorCriticRMA(nn.Module):
     def entropy(self):
         return self.distribution.entropy().sum(dim=-1)
 
+    # 根据当前的观测，更新 actor 的分布
     def update_distribution(self, observations, hist_encoding):
         mean = self.actor(observations, hist_encoding)
+        # 使用均值和标准差构建一个正态分布
         self.distribution = Normal(mean, mean*0. + self.std)
 
+    # 根据当前的观测，通过 sample 从分布中采样一个动作
     def act(self, observations, hist_encoding=False, **kwargs):
+        # 更新分布
         self.update_distribution(observations, hist_encoding)
         return self.distribution.sample()
     

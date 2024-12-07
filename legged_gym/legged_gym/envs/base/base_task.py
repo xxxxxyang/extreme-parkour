@@ -39,6 +39,14 @@ import time
 class BaseTask():
 
     def __init__(self, cfg, sim_params, physics_engine, sim_device, headless):
+        """
+        Args:
+            cfg PaurkourCfg: Configuration for the task
+            sim_params (dict): Simulation parameters
+            physics_engine (str): Physics engine to use
+            sim_device (str): Device to run simulation on
+            headless (bool): Whether to run in headless mode
+        """
         self.gym = gymapi.acquire_gym()
 
         self.sim_params = sim_params

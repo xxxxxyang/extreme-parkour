@@ -100,8 +100,8 @@ class TaskRegistry():
         env_cfg, _ = update_cfg_from_args(env_cfg, None, args)
         set_seed(env_cfg.seed)
         # parse sim params (convert to dict first)
-        sim_params = {"sim": class_to_dict(env_cfg.sim)}
-        sim_params = parse_sim_params(args, sim_params)
+        sim_params = {"sim": class_to_dict(env_cfg.sim)} # 把sim类转换为字典
+        sim_params = parse_sim_params(args, sim_params) # 把sim_params 和 args 转换为 SimParams 类
         env = task_class(   cfg=env_cfg,
                             sim_params=sim_params,
                             physics_engine=args.physics_engine,

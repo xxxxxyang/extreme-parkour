@@ -39,6 +39,10 @@ from torch.nn.modules.pooling import MaxPool2d
 from .base_config import BaseConfig
 import torch.nn as nn
 class LeggedRobotCfg(BaseConfig):
+    """
+    Configuration for the legged robot environment.
+    
+    """
     class play:
         load_student_config = False
         mask_priv_obs = False

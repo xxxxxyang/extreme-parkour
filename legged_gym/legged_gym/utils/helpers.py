@@ -180,6 +180,7 @@ def update_cfg_from_args(env_cfg, cfg_train, args):
     return env_cfg, cfg_train
 
 def get_args():
+    # 用户自定义参数列表
     custom_parameters = [
         {"name": "--task", "type": str, "default": "a1", "help": "Resume training or start testing from a checkpoint. Overrides config file if provided."},
         {"name": "--resume", "action": "store_true", "default": False,  "help": "Resume training from a checkpoint"},
@@ -229,6 +230,7 @@ def get_args():
         custom_parameters=custom_parameters)
 
     # name allignment
+    # 这些参数是默认设置的，如果用户没有设置的话
     args.sim_device_id = args.compute_device_id
     args.sim_device = args.sim_device_type
     if args.sim_device=='cuda':
@@ -297,7 +299,18 @@ def parse_device_str(device_str):
     return device, device_id
 
 def parse_arguments(description="Isaac Gym Example", headless=False, no_graphics=False, custom_parameters=[]):
+    """
+    Parse command line arguments
+    Args:
+        description (str): Description of the script
+        headless (bool): Whether to run headless -> no viewer window
+        no_graphics (bool): Whether to run without graphics context -> no viewer window and no headless rendering
+        custom_parameters (list): List of custom parameters to add to the parser
+    Returns:
+        args (argparse.Namespace): Parsed arguments
+    """
     parser = argparse.ArgumentParser(description=description)
+    # 默认参数
     if headless:
         parser.add_argument('--headless', action='store_true', help='Run headless without creating a viewer window')
     if no_graphics:
@@ -315,6 +328,7 @@ def parse_arguments(description="Isaac Gym Example", headless=False, no_graphics
     parser.add_argument('--subscenes', type=int, default=0, help='Number of PhysX subscenes to simulate in parallel')
     parser.add_argument('--slices', type=int, help='Number of client threads that process env slices')
 
+    # 用户自定义参数
     for argument in custom_parameters:
         if ("name" in argument) and ("type" in argument or "action" in argument):
             help_str = ""
@@ -337,6 +351,7 @@ def parse_arguments(description="Isaac Gym Example", headless=False, no_graphics
 
     args = parser.parse_args()
 
+    # 若用户设置了device，使用用户设置的device，否则使用默认的device
     if args.device is not None:
         args.sim_device = args.device
         args.rl_device = args.device

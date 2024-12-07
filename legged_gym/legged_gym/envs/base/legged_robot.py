@@ -53,6 +53,7 @@ from tqdm import tqdm
 import cv2
 import matplotlib.pyplot as plt
 
+# 四元数转换为欧拉角
 def euler_from_quaternion(quat_angle):
         """
         Convert a quaternion into euler angles (roll, pitch, yaw)

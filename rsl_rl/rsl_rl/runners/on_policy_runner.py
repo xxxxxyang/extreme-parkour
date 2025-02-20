@@ -111,7 +111,6 @@ class OnPolicyRunner:
             [self.env.num_actions],
         )
 
-        # learn 属性是一个类型为函数的属性，用于执行学习过程
         # 当 if_depth 为 False 时，使用 learn_RL 函数，否则使用 learn_vision 函数
         self.learn = self.learn_RL if not self.if_depth else self.learn_vision
             
@@ -139,6 +138,7 @@ class OnPolicyRunner:
         # if self.log_dir is not None and self.writer is None:
         #     self.writer = SummaryWriter(log_dir=self.log_dir, flush_secs=10)
         if init_at_random_ep_len:
+            # different episode length for each env
             self.env.episode_length_buf = torch.randint_like(self.env.episode_length_buf, high=int(self.env.max_episode_length))
         # 观测数据：obs, critic_obs, infos
         obs = self.env.get_observations()
@@ -170,17 +170,17 @@ class OnPolicyRunner:
         # 一个张量，表示当前 episode 的长度(步数)
         cur_episode_length = torch.zeros(self.env.num_envs, dtype=torch.float, device=self.device)
 
-        # 计算总的学习迭代次数 ? 为什么要加上当前的学习迭代次数
+        # if load last training state, current_learning_iteration != 0
         tot_iter = self.current_learning_iteration + num_learning_iterations
         self.start_learning_iteration = copy(self.current_learning_iteration)
 
-        # 
+
         for it in range(self.current_learning_iteration, tot_iter):
             start = time.time()
             # 每隔一定的迭代次数更新历史编码
             hist_encoding = it % self.dagger_update_freq == 0
 
-            # Rollout
+            # Rollout  [60 steps per episode]
             with torch.inference_mode():
                 for i in range(self.num_steps_per_env):
                     actions = self.alg.act(obs, critic_obs, infos, hist_encoding)

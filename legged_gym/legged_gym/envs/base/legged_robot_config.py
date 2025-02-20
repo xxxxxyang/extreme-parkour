@@ -60,7 +60,7 @@ class LeggedRobotCfg(BaseConfig):
         num_actions = 12
         env_spacing = 3.  # not used with heightfields/trimeshes 
         send_timeouts = True # send time out information to the algorithm
-        episode_length_s = 20 # episode length in seconds
+        episode_length_s = 20 # episode length in seconds (20 seconds per episode)
         obs_type = "og"
 
 
@@ -279,25 +279,71 @@ class LeggedRobotCfg(BaseConfig):
         thickness = 0.01
 
     class domain_rand:
+        # base dynamics_randomization
         randomize_friction = True
-        friction_range = [0.6, 2.]
-        randomize_base_mass = True
+        # friction_range = [0.6, 2.]
+        friction_range = [1.3, 1.3] # without friction randomization
+        randomize_base_mass = False
         added_mass_range = [0., 3.]
-        randomize_base_com = True
+        randomize_base_com = False
         added_com_range = [-0.2, 0.2]
-        push_robots = True
+        push_robots = False
         push_interval_s = 8
         max_push_vel_xy = 0.5
 
-        randomize_motor = True
+        # controler dynamics_randomization
+        randomize_motor = False
         motor_strength_range = [0.8, 1.2]
+        static_motor_strength = 1.0
+        # randomize_motor_pgain = False
+        # motor_pgain_range = [0.8, 1.2]
 
-        delay_update_global_steps = 24 * 8000
+        delay_update_global_steps = 24 * 8000   # update delay every 24*8000 steps
         action_delay = False
-        action_curr_step = [1, 1]
-        action_curr_step_scratch = [0, 1]
+        # action_delay = True
+        action_curr_step = [1, 1]   # list of delays
+        action_curr_step_scratch = [0, 1] 
         action_delay_view = 1
         action_buf_len = 8
+
+        # depth_camera
+        randomize_camera_pos = False # randomize camera position
+        camera_pos_range = [[0.2, 0.2, 0.2], [0.5, 0.5, 0.5]] # [m]
+        randomize_camera_angle = False   # randomize camera angle
+        camera_angle_range = [[-10, -10], [10, 10]]
+        randomize_camera_fov = False # randomize camera fov
+        camera_fov_range = [60, 120]
+        randomize_camera_res = False # randomize camera resolution
+        camera_res_range = [[64, 64], [128, 128]]
+        randomize_camera_noise = False   # randomize camera noise
+        camera_noise_range = [0.0, 0.1]
+        randomize_camera_clip = False    # randomize camera clip range
+        camera_clip_range = [0.1, 10.0]
+        randomize_camera_scale = False   # randomize camera scale
+        camera_scale_range = [0.1, 2.0]
+        randomize_camera_invert = False  # randomize camera invert
+        camera_invert_range = [0, 1]
+
+        # RGBD camera
+        randomize_rgbd_camera_pos = False
+        rgbd_camera_pos_range = [[0.2, 0.2, 0.2], [0.5, 0.5, 0.5]]
+        randomize_rgbd_camera_angle = False
+        rgbd_camera_angle_range = [[-10, -10], [10, 10]]
+        randomize_rgbd_camera_fov = False
+        rgbd_camera_fov_range = [60, 120]
+        randomize_rgbd_camera_res = False
+        rgbd_camera_res_range = [[64, 64], [128, 128]]
+        randomize_rgbd_camera_noise = False
+        rgbd_camera_noise_range = [0.0, 0.1]
+        randomize_rgbd_camera_clip = False
+        rgbd_camera_clip_range = [0.1, 10.0]
+        randomize_rgbd_camera_scale = False
+        rgbd_camera_scale_range = [0.1, 2.0]
+        randomize_rgbd_camera_invert = False
+        rgbd_camera_invert_range = [0, 1]
+        randomize_rgbd_delay = False
+        rgbd_delay_range = [0, 1]   # [s]
+
         
     class rewards:
         class scales:
@@ -337,7 +383,7 @@ class LeggedRobotCfg(BaseConfig):
         lookat = [11., 5, 3.]  # [m]
 
     class sim:
-        dt =  0.005
+        dt =  0.005 # [s]
         substeps = 1
         gravity = [0., 0. ,-9.81]  # [m/s^2]
         up_axis = 1  # 0 is y, 1 is z

@@ -139,7 +139,7 @@ def update_cfg_from_args(env_cfg, cfg_train, args):
             env_cfg.terrain.terrain_dict["demo"] = 0.15
             env_cfg.terrain.terrain_proportions = list(env_cfg.terrain.terrain_dict.values())
         if env_cfg.depth.use_camera:
-            env_cfg.terrain.y_range = [-0.1, 0.1]
+            env_cfg.terrain.y_range = [-0.1, 0.1] # why?
 
         # num envs
         if args.num_envs is not None:
@@ -189,7 +189,7 @@ def get_args():
         {"name": "--load_run", "type": str,  "help": "Name of the run to load when resume=True. If -1: will load the last run. Overrides config file if provided."},
         {"name": "--checkpoint", "type": int, "default": -1, "help": "Saved model checkpoint number. If -1: will load the last checkpoint. Overrides config file if provided."},
         
-        {"name": "--headless", "action": "store_true", "default": False, "help": "Force display off at all times"},
+        {"name": "--headless", "action": "store_true", "default": True, "help": "Force display off at all times"},
         {"name": "--horovod", "action": "store_true", "default": False, "help": "Use horovod for multi-gpu training"},
         {"name": "--rl_device", "type": str, "default": "cuda:0", "help": 'Device used by the RL algorithm, (cpu, gpu, cuda:0, cuda:1 etc..)'},
         {"name": "--num_envs", "type": int, "help": "Number of environments to create. Overrides config file if provided."},
@@ -200,7 +200,7 @@ def get_args():
         {"name": "--rows", "type": int, "help": "num_rows."},
         {"name": "--cols", "type": int, "help": "num_cols"},
         {"name": "--debug", "action": "store_true", "default": False, "help": "Disable wandb logging"},
-        {"name": "--proj_name", "type": str,  "default": "parkour_new", "help": "run folder name."},
+        {"name": "--proj_name", "type": str,  "default": "parkour_drand", "help": "run folder name."},
         
         {"name": "--teacher", "type": str, "help": "Name of the teacher policy to use when distilling"},
         {"name": "--exptid", "type": str, "help": "exptid"},
@@ -215,7 +215,6 @@ def get_args():
         {"name": "--save", "action": "store_true", "default": False, "help": "save data for evaluation"},
 
         {"name": "--task_both", "action": "store_true", "default": False, "help": "Both climbing and hitting policies"},
-        {"name": "--nodelay", "action": "store_true", "default": False, "help": "Add action delay"},
         {"name": "--delay", "action": "store_true", "default": False, "help": "Add action delay"},
         {"name": "--hitid", "type": str, "default": None, "help": "exptid fot hitting policy"},
 

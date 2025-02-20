@@ -70,7 +70,7 @@ def play(args):
     log_pth = "../../logs/{}/".format(args.proj_name) + args.exptid
     env_cfg, train_cfg = task_registry.get_cfgs(name=args.task)
     # override some parameters for testing
-    if args.nodelay:
+    if not args.delay:
         env_cfg.domain_rand.action_delay_view = 0
     env_cfg.env.num_envs = 256
     env_cfg.env.episode_length_s = 20

@@ -34,6 +34,7 @@ from datetime import datetime
 from typing import Tuple
 import torch
 import numpy as np
+import wandb
 
 from rsl_rl.env import VecEnv
 from rsl_rl.runners import OnPolicyRunner
@@ -83,21 +84,60 @@ class TaskRegistry():
         """
         # if no args passed get command line arguments
         if args is None:
-            # 获取命令行参数
             args = get_args()
         # check if there is a registered env with that name
         if name in self.task_classes:
-            # 从注册的类中获取任务类
             task_class = self.get_task_class(name)
         else:
             raise ValueError(f"Task with name: {name} was not registered")
         if env_cfg is None:
             # load config files
-            # 从注册的类中获取环境配置
             env_cfg, _ = self.get_cfgs(name)
         # override cfg from args (if specified)
-        # 若调用时传入了arg，则使用arg里的cfg更新原有的配置
         env_cfg, _ = update_cfg_from_args(env_cfg, None, args)
+
+        # attach env_cfg.domain_randomization to wandb.config
+        if not args.no_wandb:
+            domain_rand_cfg = {
+                "domain_rand": {
+                    "randomize_friction"    : env_cfg.domain_rand.randomize_friction,
+                    "friction_range"        : env_cfg.domain_rand.friction_range,
+                    "randomize_base_mass"   : env_cfg.domain_rand.randomize_base_mass,
+                    "added_mass_range"      : env_cfg.domain_rand.added_mass_range,
+                    "randomize_base_com"    : env_cfg.domain_rand.randomize_base_com,
+                    "added_com_range"       : env_cfg.domain_rand.added_com_range,
+                    "push_robots"           : env_cfg.domain_rand.push_robots,
+                    "push_interval_s"       : env_cfg.domain_rand.push_interval_s,
+                    "max_push_vel_xy"       : env_cfg.domain_rand.max_push_vel_xy,
+                    "randomize_motor"       : env_cfg.domain_rand.randomize_motor,
+                    "motor_strength_range"  : env_cfg.domain_rand.motor_strength_range,
+                    "static_motor_strength" : env_cfg.domain_rand.static_motor_strength,
+                    "delay_update_global_steps" : env_cfg.domain_rand.delay_update_global_steps,
+                    "action_delay"          : env_cfg.domain_rand.action_delay,
+                    "action_curr_step"      : env_cfg.domain_rand.action_curr_step,
+                    "action_curr_step_scratch" : env_cfg.domain_rand.action_curr_step_scratch,
+                    "action_delay_view"     : env_cfg.domain_rand.action_delay_view,
+                    "action_buf_len"        : env_cfg.domain_rand.action_buf_len,
+                    "randomize_camera_pos"  : env_cfg.domain_rand.randomize_camera_pos,
+                    "camera_pos_range"      : env_cfg.domain_rand.camera_pos_range,
+                    "randomize_camera_angle" : env_cfg.domain_rand.randomize_camera_angle,
+                    "camera_angle_range"    : env_cfg.domain_rand.camera_angle_range,
+                    "randomize_camera_fov"  : env_cfg.domain_rand.randomize_camera_fov,
+                    "camera_fov_range"      : env_cfg.domain_rand.camera_fov_range,
+                    "randomize_camera_res"  : env_cfg.domain_rand.randomize_camera_res,
+                    "camera_res_range"      : env_cfg.domain_rand.camera_res_range,
+                    "randomize_camera_noise" : env_cfg.domain_rand.randomize_camera_noise,
+                    "camera_noise_range"    : env_cfg.domain_rand.camera_noise_range,
+                    "randomize_camera_clip" : env_cfg.domain_rand.randomize_camera_clip,
+                    "camera_clip_range"     : env_cfg.domain_rand.camera_clip_range,
+                    "randomize_camera_scale" : env_cfg.domain_rand.randomize_camera_scale,
+                    "camera_scale_range"    : env_cfg.domain_rand.camera_scale_range,
+                    "randomize_camera_invert" : env_cfg.domain_rand.randomize_camera_invert,
+                    "camera_invert_range"   : env_cfg.domain_rand.camera_invert_range
+                }
+            }
+            wandb.config.update(domain_rand_cfg)
+
         set_seed(env_cfg.seed)
         # parse sim params (convert to dict first)
         sim_params = {"sim": class_to_dict(env_cfg.sim)} # 把sim类转换为字典
@@ -158,13 +198,12 @@ class TaskRegistry():
                                 log_dir, 
                                 init_wandb=init_wandb,
                                 device=args.rl_device, **kwargs)
-        #save resume path before creating a new log_dir
+        # save resume path before creating a new log_dir
         resume = train_cfg.runner.resume
         if args.resumeid:
             log_root = LEGGED_GYM_ROOT_DIR + f"/logs/{args.proj_name}/" + args.resumeid
             resume = True
         if resume:
-            # 如果resume为True，则加载之前训练的模型
             # load previously trained model
             print(log_root)
             print(train_cfg.runner.load_run)

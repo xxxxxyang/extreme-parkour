@@ -28,10 +28,6 @@
 #
 # Copyright (c) 2021 ETH Zurich, Nikita Rudin
 
-# 超参数定义，包括
-# 1. 环境参数
-# 2. PPO 训练参数
-# 这两个类继承自 BaseConfig 类，BaseConfig 类定义了一个初始化函数，用于初始化所有成员类
 
 from posixpath import relpath
 from torch.nn.modules.activation import ReLU

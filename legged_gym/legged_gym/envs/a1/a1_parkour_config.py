@@ -53,11 +53,11 @@ class A1ParkourCfg( LeggedRobotCfg ):
 
     class control( LeggedRobotCfg.control ):
         # PD Drive parameters:
-        control_type = 'P'
+        control_type = 'P'  # 'P' for position, 'V' for velocity
         stiffness = {'joint': 40.}  # [N*m/rad]
         damping = {'joint': 1}     # [N*m*s/rad]
-        action_scale = 0.25
-        decimation = 4
+        action_scale = 0.25 # action scale: target angle = actionScale * action + defaultAngle
+        decimation = 4  # decimation: Number of control action updates @ sim DT per policy DT
 
     class asset( LeggedRobotCfg.asset ):
         # file = '{LEGGED_GYM_ROOT_DIR}/resources/robots/go1/urdf/go1_new.urdf'

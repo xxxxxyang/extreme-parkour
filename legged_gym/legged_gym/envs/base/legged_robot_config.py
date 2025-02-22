@@ -91,29 +91,6 @@ class LeggedRobotCfg(BaseConfig):
         reach_goal_delay = 0.1
         num_future_goal_obs = 2
 
-    class depth:
-        use_camera = False
-        camera_num_envs = 192
-        camera_terrain_num_rows = 10
-        camera_terrain_num_cols = 20
-
-        position = [0.27, 0, 0.03]  # front camera
-        angle = [-5, 5]  # positive pitch down
-
-        update_interval = 5  # 5 works without retraining, 8 worse
-
-        original = (106, 60)
-        resized = (87, 58)
-        horizontal_fov = 87
-        buffer_len = 2
-        
-        near_clip = 0
-        far_clip = 2
-        dis_noise = 0.0
-        
-        scale = 1
-        invert = True
-
     class normalization:
         class obs_scales:
             lin_vel = 2.0
@@ -274,6 +251,31 @@ class LeggedRobotCfg(BaseConfig):
         armature = 0.
         thickness = 0.01
 
+    class depth:
+        use_camera = False
+        camera_num_envs = 192
+        camera_terrain_num_rows = 10
+        camera_terrain_num_cols = 20
+
+        position = [0.27, 0, 0.03]  # front camera
+        angle = [-5, 5]  # positive pitch down
+
+        # depth_image update interval, also can be seen as the delay of the depth image
+        update_interval = 5  # 5 works without retraining, 8 worse
+        # TODO: add rand update interval
+
+        original = (106, 60)
+        resized = (87, 58)
+        horizontal_fov = 87
+        buffer_len = 2
+        
+        near_clip = 0
+        far_clip = 2
+        dis_noise = 0.0
+        
+        scale = 1
+        invert = True
+
     class domain_rand:
         # base dynamics_randomization
         randomize_friction = True
@@ -303,42 +305,29 @@ class LeggedRobotCfg(BaseConfig):
         action_buf_len = 8
 
         # depth_camera
-        randomize_camera_pos = False # randomize camera position
+        randomize_camera = False    # randomize camera position, angle and fov
         camera_pos_range = [[0.2, 0.2, 0.2], [0.5, 0.5, 0.5]] # [m]
-        randomize_camera_angle = False   # randomize camera angle
-        camera_angle_range = [[-10, -10], [10, 10]]
-        randomize_camera_fov = False # randomize camera fov
-        camera_fov_range = [60, 120]
-        randomize_camera_res = False # randomize camera resolution
-        camera_res_range = [[64, 64], [128, 128]]
-        randomize_camera_noise = False   # randomize camera noise
-        camera_noise_range = [0.0, 0.1]
-        randomize_camera_clip = False    # randomize camera clip range
-        camera_clip_range = [0.1, 10.0]
-        randomize_camera_scale = False   # randomize camera scale
-        camera_scale_range = [0.1, 2.0]
-        randomize_camera_invert = False  # randomize camera invert
-        camera_invert_range = [0, 1]
+        camera_angle_range = [-5, 5] # [deg]
+        camera_fov_range = [60, 120] # [deg]
 
-        # RGBD camera
-        randomize_rgbd_camera_pos = False
-        rgbd_camera_pos_range = [[0.2, 0.2, 0.2], [0.5, 0.5, 0.5]]
-        randomize_rgbd_camera_angle = False
-        rgbd_camera_angle_range = [[-10, -10], [10, 10]]
-        randomize_rgbd_camera_fov = False
-        rgbd_camera_fov_range = [60, 120]
-        randomize_rgbd_camera_res = False
-        rgbd_camera_res_range = [[64, 64], [128, 128]]
-        randomize_rgbd_camera_noise = False
-        rgbd_camera_noise_range = [0.0, 0.1]
-        randomize_rgbd_camera_clip = False
-        rgbd_camera_clip_range = [0.1, 10.0]
-        randomize_rgbd_camera_scale = False
-        rgbd_camera_scale_range = [0.1, 2.0]
-        randomize_rgbd_camera_invert = False
-        rgbd_camera_invert_range = [0, 1]
-        randomize_rgbd_delay = False
-        rgbd_delay_range = [0, 1]   # [s]
+        randomize_depth_noise = False   # randomize camera noise
+
+        light_intensity_prob = 0.2  # probability of changing light intensity
+        max_intensity  = 5.0   # max light intensity
+        light_rand_type = "uniform"  # 'uniform' or 'normal'
+
+        reflectivity_prob = 0.2   # probability of changing reflectivity
+        texture_scale = 0.05  # scale of the texture
+
+        max_occlusion_num = 3 # max number of occlusions
+        max_occ_width = 20    # max width of occlusions
+        max_occ_height = 20   # max height of occlusions
+
+        noise_type = "gaussian"   # noise type 'gaussian' or 'salt_pepper' or 'dedepth_dependent'
+        # depth_camera_delay = False
+        # depth_camera_delay_steps = 1
+        # depth_camera_delay_view = 1
+        # depth_camera_buf_len = 8
 
         
     class rewards:
@@ -379,7 +368,7 @@ class LeggedRobotCfg(BaseConfig):
         lookat = [11., 5, 3.]  # [m]
 
     class sim:
-        dt =  0.005 # [s]
+        dt =  0.005 # [s] @SIM_DT 200Hz, with decimation 4 the policy runs at 50Hz -> @POLICY_DT=0.02
         substeps = 1
         gravity = [0., 0. ,-9.81]  # [m/s^2]
         up_axis = 1  # 0 is y, 1 is z

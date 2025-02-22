@@ -118,22 +118,21 @@ class TaskRegistry():
                     "action_curr_step_scratch" : env_cfg.domain_rand.action_curr_step_scratch,
                     "action_delay_view"     : env_cfg.domain_rand.action_delay_view,
                     "action_buf_len"        : env_cfg.domain_rand.action_buf_len,
-                    "randomize_camera_pos"  : env_cfg.domain_rand.randomize_camera_pos,
+
+                    "randomize_camera"      : env_cfg.domain_rand.randomize_camera,
                     "camera_pos_range"      : env_cfg.domain_rand.camera_pos_range,
-                    "randomize_camera_angle" : env_cfg.domain_rand.randomize_camera_angle,
                     "camera_angle_range"    : env_cfg.domain_rand.camera_angle_range,
-                    "randomize_camera_fov"  : env_cfg.domain_rand.randomize_camera_fov,
                     "camera_fov_range"      : env_cfg.domain_rand.camera_fov_range,
-                    "randomize_camera_res"  : env_cfg.domain_rand.randomize_camera_res,
-                    "camera_res_range"      : env_cfg.domain_rand.camera_res_range,
-                    "randomize_camera_noise" : env_cfg.domain_rand.randomize_camera_noise,
-                    "camera_noise_range"    : env_cfg.domain_rand.camera_noise_range,
-                    "randomize_camera_clip" : env_cfg.domain_rand.randomize_camera_clip,
-                    "camera_clip_range"     : env_cfg.domain_rand.camera_clip_range,
-                    "randomize_camera_scale" : env_cfg.domain_rand.randomize_camera_scale,
-                    "camera_scale_range"    : env_cfg.domain_rand.camera_scale_range,
-                    "randomize_camera_invert" : env_cfg.domain_rand.randomize_camera_invert,
-                    "camera_invert_range"   : env_cfg.domain_rand.camera_invert_range
+                    "randomize_depth_noise" : env_cfg.domain_rand.randomize_depth_noise,
+                    "light_intensity_prob"  : env_cfg.domain_rand.light_intensity_prob,
+                    "max_intensity"         : env_cfg.domain_rand.max_intensity,
+                    "light_rand_type"       : env_cfg.domain_rand.light_rand_type,
+                    "reflectivity_prob"     : env_cfg.domain_rand.reflectivity_prob,
+                    "texture_scale"         : env_cfg.domain_rand.texture_scale,
+                    "max_occlusion_num"     : env_cfg.domain_rand.max_occlusion_num,
+                    "max_occ_width"         : env_cfg.domain_rand.max_occ_width,
+                    "max_occ_height"        : env_cfg.domain_rand.max_occ_height,
+                    "noise_type"            : env_cfg.domain_rand.noise_type
                 }
             }
             wandb.config.update(domain_rand_cfg)
@@ -186,11 +185,12 @@ class TaskRegistry():
         
         if log_root=="default":
             log_root = os.path.join(LEGGED_GYM_ROOT_DIR, 'logs', train_cfg.runner.experiment_name)
-            log_dir = os.path.join(log_root, datetime.now().strftime('%b%d_%H-%M-%S') + '_' + train_cfg.runner.run_name)
+            log_dir = os.path.join(log_root, datetime.now().strftime('%b%d_%H-%M-%S') + '_' + train_cfg.runner.run_name) # like 'logs/rough_a1/Jul01_12-34-56_run_name'
         elif log_root is None:
             log_dir = None
         else:
-            log_dir = log_root#os.path.join(log_root, datetime.now().strftime('%b%d_%H-%M-%S') + '_' + train_cfg.runner.run_name)
+            log_dir = log_root
+            # os.path.join(log_root, datetime.now().strftime('%b%d_%H-%M-%S') + '_' + train_cfg.runner.run_name)
         
         train_cfg_dict = class_to_dict(train_cfg)
         runner = OnPolicyRunner(env, 

@@ -250,10 +250,12 @@ class OnPolicyRunner:
         cur_reward_sum = torch.zeros(self.env.num_envs, dtype=torch.float, device=self.device)
         cur_episode_length = torch.zeros(self.env.num_envs, dtype=torch.float, device=self.device)
 
-        obs = self.env.get_observations()
-        infos = {}
+        obs = self.env.get_observations()   # initial observation
+        infos = {}  # additional information such as depth and delta_yaw_ok
+        # TODO: add delay of depth image
         infos["depth"] = self.env.depth_buffer.clone().to(self.device)[:, -1] if self.if_depth else None
         infos["delta_yaw_ok"] = torch.ones(self.env.num_envs, dtype=torch.bool, device=self.device)
+        # set model to train mode
         self.alg.depth_encoder.train()
         self.alg.depth_actor.train()
 

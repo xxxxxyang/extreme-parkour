@@ -59,7 +59,7 @@ def play(args):
     if args.web:
         web_viewer = webviewer.WebViewer()
     faulthandler.enable()
-    exptid = args.exptid
+    # exptid = args.exptid
     log_pth = "../../logs/{}/".format(args.proj_name) + args.exptid
 
     env_cfg, train_cfg = task_registry.get_cfgs(name=args.task)

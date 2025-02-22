@@ -111,6 +111,7 @@ def get_load_path(root, load_run=-1, checkpoint=-1, model_name_include="model"):
                 if name[:6] == model_name_cand:
                     root = os.path.join(model_parent, name)
     if checkpoint==-1:
+        # get the last model
         models = [file for file in os.listdir(root) if model_name_include in file]
         models.sort(key=lambda m: '{0:0>15}'.format(m))
         model = models[-1]
@@ -139,7 +140,7 @@ def update_cfg_from_args(env_cfg, cfg_train, args):
             env_cfg.terrain.terrain_dict["demo"] = 0.15
             env_cfg.terrain.terrain_proportions = list(env_cfg.terrain.terrain_dict.values())
         if env_cfg.depth.use_camera:
-            env_cfg.terrain.y_range = [-0.1, 0.1] # why?
+            env_cfg.terrain.y_range = [-0.1, 0.1]
 
         # num envs
         if args.num_envs is not None:

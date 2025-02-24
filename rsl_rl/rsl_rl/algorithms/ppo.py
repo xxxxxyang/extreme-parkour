@@ -326,7 +326,7 @@ class PPO:
     def update_depth_encoder(self, depth_latent_batch, scandots_latent_batch):
         # Depth encoder ditillation
         if self.if_depth:
-            # TODO: needs to save hidden states
+            # TODO: needs to save hidden states of the depth encoder
             depth_encoder_loss = (scandots_latent_batch.detach() - depth_latent_batch).norm(p=2, dim=1).mean()
 
             self.depth_encoder_optimizer.zero_grad()

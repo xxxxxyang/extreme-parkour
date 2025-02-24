@@ -97,7 +97,7 @@ class BaseTask():
         self.enable_viewer_sync = True
         self.viewer = None
 
-        # if running with a viewer, set up keyboard shortcuts and camera
+        # if running with a viewer, set up keyboard shortcuts and camera to look at the robot
         if self.headless == False:
             # subscribe to keyboard shortcuts
             self.viewer = self.gym.create_viewer(
@@ -153,6 +153,7 @@ class BaseTask():
         cam_pos = look_at_pos + self.lookat_vec
         self.set_camera(cam_pos, look_at_pos)
 
+    # render the scene when using a viewer (headless=False)
     def render(self, sync_frame_time=True):
         if self.viewer:
             # check for window closed

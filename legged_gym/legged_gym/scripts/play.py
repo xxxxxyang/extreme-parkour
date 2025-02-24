@@ -116,7 +116,7 @@ def play(args):
 
     # load policy
     train_cfg.runner.resume = True
-    ppo_runner, train_cfg, log_pth = task_registry.make_alg_runner(log_root = log_pth, env=env, name=args.task, args=args, train_cfg=train_cfg, return_log_dir=True)
+    ppo_runner, train_cfg, log_pth = task_registry.make_alg_runner(log_root = log_pth, env=env, name=args.task, args=args, train_cfg=train_cfg, return_log_dir=True, init_wandb=False if args.no_wandb else True)
     
     if args.use_jit:
         path = os.path.join(log_pth, "traced")
@@ -154,6 +154,7 @@ def play(args):
                     depth_latent_and_yaw = depth_encoder(infos["depth"], obs_student)
                     depth_latent = depth_latent_and_yaw[:, :-2]
                     yaw = depth_latent_and_yaw[:, -2:]
+                # use camera but no depth
                 obs[:, 6:8] = 1.5*yaw
                     
             else:

@@ -135,7 +135,8 @@ class TaskRegistry():
                     "noise_type"            : env_cfg.domain_rand.noise_type
                 }
             }
-            wandb.config.update(domain_rand_cfg)
+            if not args.no_wandb and not args.debug:
+                wandb.config.update(domain_rand_cfg)
 
         set_seed(env_cfg.seed)
         # parse sim params (convert to dict first)

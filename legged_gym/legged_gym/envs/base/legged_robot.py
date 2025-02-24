@@ -210,7 +210,6 @@ class LeggedRobot(BaseTask):
         # overexposed
         if light_intensity > light_intensity_prob * max_intensity:    # 20% chance of overexposed
             # randomly generate the mask (occlusion area)
-            mask = torch.zeros((h, w), dtype=torch.bool, device=self.device)
             cx, cy = torch.randint(0, w, (1,), device=self.device).item(), torch.randint(0, h, (1,), device=self.device).item()
             radius = torch.randint(10, 20, (1,), device=self.device).item()
             y, x = torch.meshgrid(torch.arange(h, device=self.device), torch.arange(w, device=self.device))
@@ -219,7 +218,7 @@ class LeggedRobot(BaseTask):
             else:
                 # rectangular mask
                 mask_area = (x > cx - radius) & (x < cx + radius) & (y > cy - radius) & (y < cy + radius)
-            noisy_depth[mask_area] = 0  # set the depth to 0 in the occlusion area to simulate overexposed
+            noisy_depth[mask_area] = 0  # TODO: set the depth to 0 in the occlusion area to simulate overexposed
 
         # underexposed
         if light_intensity < light_intensity_prob * max_intensity:

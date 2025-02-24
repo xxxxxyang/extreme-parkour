@@ -30,8 +30,22 @@ python train.py --exptid test-0 --device cuda:0 --resume --resumeid baset0 --del
 推荐 5000 次迭代 (5k)
 
 2. **play.py**:
+--web           使用web浏览器查看和控制模拟环境中的相机视图
+--no_wandb      不使用wandb记录
+--proj_name     需要使用的策略的项目目录名
+--exptid        需要使用的策略项目名
+--use_camera    使用有深度相机的策略
+--delay         使用动作延迟
 
-
+使用示例：
+- 运行基础策略(with no camera)，使用网页渲染展示界面
+```bash
+python play.py --exptid baset0 --proj_name test --device cuda:0 --no_wandb --web
+```
+- 运行具有深度相机策略
+```bash
+python play.py --exptid test-0 --device cuda:0 --delay --use_camera --web
+```
 
 ## 控制与命令方面
 

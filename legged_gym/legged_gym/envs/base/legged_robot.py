@@ -194,11 +194,13 @@ class LeggedRobot(BaseTask):
         - Darker Light (underexposed): Adding multiplicative noise 
                                         (with greater noise at a greater distance)
         """
-        light_intensity_prob = self.cfg.domain_rand.light_intensity_prob
+        # light_intensity_prob = self.cfg.domain_rand.light_intensity_prob
+        light_intensity_prob = 0.5
         max_intensity = self.cfg.domain_rand.max_intensity
         light_rand_type = self.cfg.domain_rand.light_rand_type
 
-        h, w = depth_image.shape
+        h, w = depth_image.shape    # h = 58, w = 98
+        min_len = min(h, w)
         noisy_depth = depth_image.clone()
 
         # randomly generate light intensity
@@ -208,7 +210,7 @@ class LeggedRobot(BaseTask):
             light_intensity = torch.rand((1), device=self.device) * max_intensity
         
         # overexposed
-        if light_intensity > light_intensity_prob * max_intensity:    # 20% chance of overexposed
+        if light_intensity < light_intensity_prob * max_intensity:    # 10% chance of overexposed or underexposed
             # randomly generate the mask (occlusion area)
             cx, cy = torch.randint(0, w, (1,), device=self.device).item(), torch.randint(0, h, (1,), device=self.device).item()
             radius = torch.randint(10, 20, (1,), device=self.device).item()
@@ -218,16 +220,18 @@ class LeggedRobot(BaseTask):
             else:
                 # rectangular mask
                 mask_area = (x > cx - radius) & (x < cx + radius) & (y > cy - radius) & (y < cy + radius)
-            noisy_depth[mask_area] = 0  # TODO: set the depth to 0 in the occlusion area to simulate overexposed
+            # torch.set_printoptions(precision=4, linewidth=100, profile='full')
+            # print(mask_area)
+            noisy_depth[mask_area] = float('-inf')  # TODO: set the depth to -inf in the occlusion area to simulate overexposed
 
-        # underexposed
-        if light_intensity < light_intensity_prob * max_intensity:
-            # Low light intensity: multiplicative Gaussian noise
-            noise_scale = torch.rand(1, device=self.device) * 0.09 + 0.01
-            noise = noise_scale * noisy_depth * torch.randn(h, w, device=self.device)
-            noisy_depth = noisy_depth + noise
+        # # underexposed
+        # if light_intensity < light_intensity_prob * max_intensity:
+        #     # Low light intensity: multiplicative Gaussian noise
+        #     noise_scale = torch.rand(1, device=self.device) * 0.09 + 0.01
+        #     noise = noise_scale * noisy_depth * torch.randn(h, w, device=self.device)
+        #     noisy_depth = noisy_depth - noise
         
-        return torch.clip(noisy_depth, 0, None)
+        return torch.clip(noisy_depth, None, 0)
 
     def rand_material_noise(self, depth_image):
         """
@@ -249,17 +253,17 @@ class LeggedRobot(BaseTask):
             for _ in range(num_spikes):
                 x = torch.randint(0, w, (1,)).item()
                 y = torch.randint(0, h, (1,)).item()
-                spike_value = torch.rand(1).item() * 0.5 + 0.5 # TODO: add true spike error
-                noisy_depth[y, x] = spike_value
+                # TODO: add true spike error
+                noisy_depth[y, x] = depth_image[y, x] * (torch.rand(1).item() * 0.5 + 0.5)
 
         # Texture noise: Perlin noise or high-frequency Gaussian noise
-        X = torch.linspace(0, 1, w, device=self.device)
-        Y = torch.linspace(0, 1, h, device=self.device)
+        X = torch.linspace(0, 1, h, device=self.device)
+        Y = torch.linspace(0, 1, w, device=self.device)
         x, y = torch.meshgrid(X, Y)
         texture_noise = torch.sin(50 * x) * torch.cos(30 * y) * texture_scale   # high-frequency texture
-        noise_depth += texture_scale * texture_noise
+        noisy_depth -= texture_noise
 
-        return torch.clip(noisy_depth, 0, None) # depth should be positive
+        return torch.clip(noisy_depth, None, 0) # depth should be positive
 
 
     def rand_occlusion_noise(self, depth_image):
@@ -279,24 +283,26 @@ class LeggedRobot(BaseTask):
         num_occlusions = torch.randint(1, max_occlusion_num + 1, (1,)).item()
         for _ in range(num_occlusions):
             # Random position and size
-            x1 = torch.randint(0, w, (1,)).item()
-            y1 = torch.randint(0, h, (1,)).item()
-            x2 = torch.randint(x1, min(max_occ_width, w), (1,)).item()
-            y2 = torch.randint(y1, min(max_occ_height, h), (1,)).item()
+            y1 = torch.randint(0, w, (1,)).item()
+            x1 = torch.randint(0, h, (1,)).item()
+            y2 = torch.randint(y1, min(max_occ_width+y1, w), (1,)).item()
+            x2 = torch.randint(x1, min(max_occ_height+x1, h), (1,)).item()
 
             # Rectangle or ellipse selection
             if torch.rand(1).item() < 0.5:
                 # Rectangle
-                noisy_depth[y1:y2, x1:x2] = 0   # TODO: add occ_depth such as rand of [0, depth_image]
+                # TODO: add occ_depth such as rand of [0, depth_image]
+                noisy_depth[y1:y2, x1:x2] = depth_image[y1:y2, x1:x2] * (torch.rand(1).item()*0.5+0.5)
             else:
                 # Ellipse occulsion
                 cy, cx = (y1 + y2) // 2, (x1 + x2) // 2
                 ry, rx = (y2 - y1) // 2, (x2 - x1) // 2
                 y_grid, x_grid = torch.meshgrid(torch.arange(h, device=self.device), torch.arange(w, device=self.device))
                 mask = ((x_grid - cx) / rx) ** 2 + ((y_grid - cy) / ry) ** 2 <= 1
-                noisy_depth[mask] = 0   # TODO: add occ_depth such as rand of [0, depth_image]
+                # TODO: add occ_depth such as rand of [0, depth_image]
+                noisy_depth[mask] = depth_image[mask] * (torch.rand(1).item()*0.5+0.5)
 
-        return torch.clip(noisy_depth, 0, None) # depth should be positive
+        return torch.clip(noisy_depth, None, 0) # depth should be positive
 
     def rand_sensor_noise(self, depth_image):
         """
@@ -309,11 +315,13 @@ class LeggedRobot(BaseTask):
 
         h, w = depth_image.shape
         noisy_depth = depth_image.clone()
+        inf_mask = noisy_depth == float('-inf')
+        noisy_depth[inf_mask] = 0
 
         # Randomly generate the noise intensity (with low intensity)
 
         if noise_type == 'gaussian':
-            noise = torch.randn(h, w, device=self.device) * 0.02 # TODO: Standard deviation of 0.02
+            noise = torch.randn(h, w, device=self.device) * 0.1 * noisy_depth # TODO: Standard deviation of 10% of the depth
             noisy_depth += noise
 
         elif noise_type == 'salt_pepper':
@@ -325,9 +333,10 @@ class LeggedRobot(BaseTask):
         elif noise_type == 'depth_dependent':
             depth_scaled = noisy_depth / 10.0  # Assume maximum depth is 10 meters
             noise = 0.1 * depth_scaled * torch.randn(h, w, device=depth_image.device)
-            noisy_depth += noise
+            noisy_depth -= noise
 
-        return torch.clip(noisy_depth, 0, None) # depth should be positive
+        noisy_depth[inf_mask] = float('-inf')
+        return torch.clip(noisy_depth, None, 0) # depth should be negative
 
     def add_depth_domain_rand_pipeline(self, depth_image):
         """
@@ -347,13 +356,17 @@ class LeggedRobot(BaseTask):
         ]
 
         # Shuffle the order of noise
-        torch.manual_seed(torch.initial_seed())
+        # torch.manual_seed(torch.initial_seed())
         noise_func = [noise_funcs[i] for i in torch.randperm(len(noise_funcs))]
 
         # Apply the noise functions
         for func in noise_func:
-            if torch.rand(1).item() < 0.5: # 50% chance of applying the noise
-                noise_depth = func(noise_depth)
+            if func.__name__ == self.rand_sensor_noise.__name__:
+                if torch.rand(1).item() < 0.5: # 50% chance of applying the noise
+                    noise_depth = func(noise_depth)
+            else:
+                if torch.rand(1).item() < 0.1: # 10% chance of applying the noise
+                    noise_depth = func(noise_depth)
 
         return noise_depth
 
@@ -1063,7 +1076,7 @@ class LeggedRobot(BaseTask):
             camera_props.width = self.cfg.depth.original[0]
             camera_props.height = self.cfg.depth.original[1]
             camera_props.enable_tensors = True
-            camera_horizontal_fov = self.cfg.depth.horizontal_fov 
+            camera_horizontal_fov = self.cfg.depth.horizontal_fov if (not self.cfg.domain_rand.randomize_camera) else np.random.uniform(self.cfg.domain_rand.camera_fov_range[0], self.cfg.domain_rand.camera_fov_range[1])
             camera_props.horizontal_fov = camera_horizontal_fov
 
             camera_handle = self.gym.create_camera_sensor(env_handle, camera_props)
@@ -1077,8 +1090,10 @@ class LeggedRobot(BaseTask):
             # domain_rand of camera position and angle
             if self.cfg.domain_rand.randomize_camera:
                 # TODO add randomization of camera pos and angle
-                camera_position = np.random.uniform(self.cfg.domain_rand.camera_pos_range[0], self.cfg.domain_rand.camera_pos_range[1], 3)
-                camera_angle = np.random.uniform(self.cfg.domain_rand.camera_angle[0], self.cfg.domain_rand.camera_angle[1])
+                camera_position = np.copy([np.random.uniform(config.position[0]*(1-self.cfg.domain_rand.camera_pos_range), config.position[0]*(1+self.cfg.domain_rand.camera_pos_range)),
+                                            np.random.uniform(config.position[1]*(1-self.cfg.domain_rand.camera_pos_range), config.position[1]*(1+self.cfg.domain_rand.camera_pos_range)),
+                                            np.random.uniform(config.position[2]*(1-self.cfg.domain_rand.camera_pos_range), config.position[2]*(1+self.cfg.domain_rand.camera_pos_range))])
+                camera_angle = np.random.uniform(self.cfg.domain_rand.camera_angle_range[0], self.cfg.domain_rand.camera_angle_range[1])
             else:
                 camera_position = np.copy(config.position)
                 camera_angle = np.random.uniform(config.angle[0], config.angle[1])

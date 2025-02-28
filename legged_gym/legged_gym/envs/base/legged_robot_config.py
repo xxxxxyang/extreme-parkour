@@ -48,7 +48,7 @@ class LeggedRobotCfg(BaseConfig):
         n_scan = 132
         n_priv = 3+3 +3
         n_priv_latent = 4 + 1 + 12 +12
-        n_proprio = 3 + 2 + 3 + 4 + 36 + 5
+        n_proprio = 3 + 2 + 3 + 4 + 36 + 5  #
         history_len = 10
 
         num_observations = n_proprio + n_scan + history_len*n_proprio + n_priv_latent + n_priv #n_scan + n_proprio + n_priv #187 + 47 + 5 + 12 
@@ -279,18 +279,18 @@ class LeggedRobotCfg(BaseConfig):
     class domain_rand:
         # base dynamics_randomization
         randomize_friction = True
-        # friction_range = [0.6, 2.]
-        friction_range = [1.3, 1.3] # without friction randomization
-        randomize_base_mass = False
+        friction_range = [0.6, 2.]
+        # friction_range = [1.3, 1.3] # without friction randomization
+        randomize_base_mass = True
         added_mass_range = [0., 3.]
-        randomize_base_com = False
+        randomize_base_com = True
         added_com_range = [-0.2, 0.2]
-        push_robots = False
+        push_robots = True
         push_interval_s = 8
         max_push_vel_xy = 0.5
 
         # controler dynamics_randomization
-        randomize_motor = False
+        randomize_motor = True
         motor_strength_range = [0.8, 1.2]
         static_motor_strength = 1.0
         # randomize_motor_pgain = False
@@ -306,13 +306,13 @@ class LeggedRobotCfg(BaseConfig):
 
         # depth_camera
         randomize_camera = False    # randomize camera position, angle and fov
-        camera_pos_range = [[0.2, 0.2, 0.2], [0.5, 0.5, 0.5]] # [m]
+        camera_pos_range = 0.2      # 20%
         camera_angle_range = [-5, 5] # [deg]
         camera_fov_range = [60, 120] # [deg]
 
         randomize_depth_noise = False   # randomize camera noise
 
-        light_intensity_prob = 0.2  # probability of changing light intensity
+        light_intensity_prob = 0.1  # probability of changing light intensity 10%
         max_intensity  = 5.0   # max light intensity
         light_rand_type = "uniform"  # 'uniform' or 'normal'
 
@@ -320,7 +320,7 @@ class LeggedRobotCfg(BaseConfig):
         texture_scale = 0.05  # scale of the texture
 
         max_occlusion_num = 3 # max number of occlusions
-        max_occ_width = 20    # max width of occlusions
+        max_occ_width = 30    # max width of occlusions
         max_occ_height = 20   # max height of occlusions
 
         noise_type = "gaussian"   # noise type 'gaussian' or 'salt_pepper' or 'dedepth_dependent'

@@ -142,6 +142,7 @@ def update_cfg_from_args(env_cfg, cfg_train, args):
         if env_cfg.depth.use_camera:
             env_cfg.terrain.y_range = [-0.1, 0.1]
 
+
         # num envs
         if args.num_envs is not None:
             env_cfg.env.num_envs = args.num_envs
@@ -158,6 +159,23 @@ def update_cfg_from_args(env_cfg, cfg_train, args):
         if not args.delay and not args.resume and not args.use_camera and args.headless: # if train from scratch
             env_cfg.domain_rand.action_delay = True
             env_cfg.domain_rand.action_curr_step = env_cfg.domain_rand.action_curr_step_scratch
+
+        # domain_rand
+        if args.no_drand:
+            env_cfg.domain_rand.friction_range = [1.3, 1.3] # close the friction randomization
+            env_cfg.domain_rand.randomize_base_mass = False
+            env_cfg.domain_rand.randomize_base_com = False
+            env_cfg.domain_rand.push_robots = False
+            env_cfg.domain_rand.randomize_motor = False
+
+            env_cfg.domain_rand.randomize_camera = False
+            env_cfg.domain_rand.randomize_depth_noise = False
+
+        # camera_noise
+        if args.use_camera and args.noise:
+            env_cfg.domain_rand.randomize_camera = True
+            env_cfg.domain_rand.randomize_depth_noise = True
+
     if cfg_train is not None:
         if args.seed is not None:
             cfg_train.seed = args.seed
@@ -220,9 +238,10 @@ def get_args():
         {"name": "--hitid", "type": str, "default": None, "help": "exptid fot hitting policy"},
 
         {"name": "--web", "action": "store_true", "default": False, "help": "if use web viewer"},
-        {"name": "--no_wandb", "action": "store_true", "default": False, "help": "no wandb"}
+        {"name": "--no_wandb", "action": "store_true", "default": False, "help": "no wandb"},
 
-
+        {"name": "--no_drand", "action": "store_true", "default": False, "help": "no domain randomization"},
+        {"name": "--noise", "action": "store_true", "default": False, "help": "add noise to camera"}
     ]
     # parse arguments
     args = parse_arguments(

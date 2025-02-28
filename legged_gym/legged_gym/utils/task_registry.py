@@ -101,29 +101,33 @@ class TaskRegistry():
             domain_rand_cfg = {
                 "domain_rand": {
                     "randomize_friction"    : env_cfg.domain_rand.randomize_friction,
-                    "friction_range"        : env_cfg.domain_rand.friction_range,
                     "randomize_base_mass"   : env_cfg.domain_rand.randomize_base_mass,
-                    "added_mass_range"      : env_cfg.domain_rand.added_mass_range,
                     "randomize_base_com"    : env_cfg.domain_rand.randomize_base_com,
-                    "added_com_range"       : env_cfg.domain_rand.added_com_range,
                     "push_robots"           : env_cfg.domain_rand.push_robots,
+                    "randomize_motor"       : env_cfg.domain_rand.randomize_motor,
+                    "action_delay"          : env_cfg.domain_rand.action_delay,
+
+                    "randomize_camera"      : env_cfg.domain_rand.randomize_camera,
+                    "randomize_depth_noise" : env_cfg.domain_rand.randomize_depth_noise
+                },
+                "domain_rand_para": {
+                    "friction_range"        : env_cfg.domain_rand.friction_range,
+                    "added_mass_range"      : env_cfg.domain_rand.added_mass_range,
+                    "added_com_range"       : env_cfg.domain_rand.added_com_range,
                     "push_interval_s"       : env_cfg.domain_rand.push_interval_s,
                     "max_push_vel_xy"       : env_cfg.domain_rand.max_push_vel_xy,
-                    "randomize_motor"       : env_cfg.domain_rand.randomize_motor,
                     "motor_strength_range"  : env_cfg.domain_rand.motor_strength_range,
                     "static_motor_strength" : env_cfg.domain_rand.static_motor_strength,
                     "delay_update_global_steps" : env_cfg.domain_rand.delay_update_global_steps,
-                    "action_delay"          : env_cfg.domain_rand.action_delay,
                     "action_curr_step"      : env_cfg.domain_rand.action_curr_step,
                     "action_curr_step_scratch" : env_cfg.domain_rand.action_curr_step_scratch,
                     "action_delay_view"     : env_cfg.domain_rand.action_delay_view,
-                    "action_buf_len"        : env_cfg.domain_rand.action_buf_len,
-
-                    "randomize_camera"      : env_cfg.domain_rand.randomize_camera,
+                    "action_buf_len"        : env_cfg.domain_rand.action_buf_len
+                },
+                "domain_rand_noise": {
                     "camera_pos_range"      : env_cfg.domain_rand.camera_pos_range,
                     "camera_angle_range"    : env_cfg.domain_rand.camera_angle_range,
                     "camera_fov_range"      : env_cfg.domain_rand.camera_fov_range,
-                    "randomize_depth_noise" : env_cfg.domain_rand.randomize_depth_noise,
                     "light_intensity_prob"  : env_cfg.domain_rand.light_intensity_prob,
                     "max_intensity"         : env_cfg.domain_rand.max_intensity,
                     "light_rand_type"       : env_cfg.domain_rand.light_rand_type,

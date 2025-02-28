@@ -43,7 +43,7 @@ class WebViewer:
         """
         Web viewer for Isaac Gym
 
-        :param host: Host address (default: "127.0.0.1")
+        :param host: Host address (default: "127.0.0.1") If you want to access the web viewer from another device, use "0.0.0.0"
         :type host: str
         :param port: Port number (default: 5000)
         :type port: int

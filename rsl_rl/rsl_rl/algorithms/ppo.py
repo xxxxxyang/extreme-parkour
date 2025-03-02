@@ -141,11 +141,12 @@ class PPO:
 
     def act(self, obs, critic_obs, info, hist_encoding=False):
         """
-            用于根据观测值计算动作
-            Args:   obs: torch.Tensor, 观测值, 包含proprioceptive, scan, priv_states
-                    critic_obs: torch.Tensor, critc的观测值, 只包含proprioceptive, scan
-                    info: dict, 环境信息
-                    hist_encoding: bool 是否使用历史编码
+        Used to compute actions based on observations.
+        Args:
+            obs: torch.Tensor, observations, including proprioceptive, scan, priv_states
+            critic_obs: torch.Tensor, observations for the critic, including only proprioceptive and scan
+            info: dict, environment information
+            hist_encoding: bool, whether to use historical encoding
         """
         if self.actor_critic.is_recurrent:
             self.transition.hidden_states = self.actor_critic.get_hidden_states()
@@ -153,7 +154,7 @@ class PPO:
         if self.train_with_estimated_states:
             # 若使用估计的priv_states训练，则将priv_states替换为估计的priv_states
             obs_est = obs.clone()
-            # 使用estimator估计priv_states
+            # estimate priv_states
             priv_states_estimated = self.estimator(obs_est[:, :self.num_prop])
             # 将估计的priv_states放入obs中
             obs_est[:, self.num_prop+self.num_scan:self.num_prop+self.num_scan+self.priv_states_dim] = priv_states_estimated
@@ -348,18 +349,20 @@ class PPO:
             self.depth_actor_optimizer.step()
             return depth_actor_loss.item(), yaw_loss.item()
     
-    def update_depth_both(self, depth_latent_batch, scandots_latent_batch, actions_student_batch, actions_teacher_batch):
+    def update_depth_both(self, depth_latent_batch, scandots_latent_batch, actions_student_batch, actions_teacher_batch, yaw_student_batch, yaw_teacher_batch):
         if self.if_depth:
             depth_encoder_loss = (scandots_latent_batch.detach() - depth_latent_batch).norm(p=2, dim=1).mean()
             depth_actor_loss = (actions_teacher_batch.detach() - actions_student_batch).norm(p=2, dim=1).mean()
+            # add yaw loss
+            yaw_loss = (yaw_teacher_batch.detach() - yaw_student_batch).norm(p=2, dim=1).mean()
 
-            depth_loss = depth_encoder_loss + depth_actor_loss
+            depth_loss = depth_encoder_loss + depth_actor_loss + yaw_loss
 
             self.depth_actor_optimizer.zero_grad()
             depth_loss.backward()
             nn.utils.clip_grad_norm_([*self.depth_actor.parameters(), *self.depth_encoder.parameters()], self.max_grad_norm)
             self.depth_actor_optimizer.step()
-            return depth_encoder_loss.item(), depth_actor_loss.item()
+            return depth_encoder_loss.item(), depth_actor_loss.item(), yaw_loss.item()
     
     def update_counter(self):
         self.counter += 1

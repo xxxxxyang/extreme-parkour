@@ -324,6 +324,8 @@ class LeggedRobotCfg(BaseConfig):
         max_occ_height = 20   # max height of occlusions
 
         noise_type = "gaussian"   # noise type 'gaussian' or 'salt_pepper' or 'dedepth_dependent'
+        sensor_prob = 0.5
+        other_prob = 0.05
         # depth_camera_delay = False
         # depth_camera_delay_steps = 1
         # depth_camera_delay_view = 1

@@ -98,6 +98,11 @@ class WebViewer:
         return flask.Response(self._stream_depth(), mimetype='multipart/x-mixed-replace; boundary=frame')
 
     def _route_input_event(self) -> 'flask.Response':
+        """
+        keyboard and mouse input event
+            keyboard: [ - prev, ] - next, V - pause stream, T - change image type
+            mouse: wheel - zoom, left - orbit, right - pan
+        """
 
         # get keyboard and mouse inputs
         data = flask.request.get_json()

@@ -105,6 +105,10 @@ def play(args):
     env_cfg.domain_rand.randomize_base_mass = False
     env_cfg.domain_rand.randomize_base_com = False
 
+    if args.noise:
+        # add depth noise
+        env_cfg.domain_rand.randomize_depth_noise = True
+
     depth_latent_buffer = []
     # prepare environment
     env: LeggedRobot

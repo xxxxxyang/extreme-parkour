@@ -55,7 +55,7 @@ python play.py --exptid baset0 --proj_name test --device cuda:0 --no_wandb --web
 ```
 - 运行具有深度相机策略
 ```bash
-python play.py --exptid test-0 --device cuda:0 --delay --use_camera --web --no_wandb
+python play.py --exptid test-0 --device cuda:0 --delay --use_camera --web --no_wandb (--noise)
 ```
 
 *关于 flask 服务器*：

@@ -362,10 +362,10 @@ class LeggedRobot(BaseTask):
         # Apply the noise functions
         for func in noise_func:
             if func.__name__ == self.rand_sensor_noise.__name__:
-                if torch.rand(1).item() < 0.5: # 50% chance of applying the noise
+                if torch.rand(1).item() < self.cfg.domain_rand.sensor_prob: # 50% chance of applying the noise
                     noise_depth = func(noise_depth)
             else:
-                if torch.rand(1).item() < 0.1: # 10% chance of applying the noise
+                if torch.rand(1).item() < self.cfg.domain_rand.other_prob: # 10% chance of applying the noise
                     noise_depth = func(noise_depth)
 
         return noise_depth

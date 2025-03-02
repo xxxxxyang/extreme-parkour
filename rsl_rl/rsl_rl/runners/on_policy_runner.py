@@ -150,18 +150,11 @@ class OnPolicyRunner:
         # 使用 actor_critic 进行训练(ppo) train()方法继承自nn.Module
         self.alg.actor_critic.train() # switch to train mode (for dropout for example)
 
-        # 存储每个 episode 的信息
         ep_infos = []
-        # 双端队列，用于存储最近 100 个 episode 的奖励值
         rewbuffer = deque(maxlen=100)
-        # 双端队列，用于存储最近 100 个 episode 的探索奖励值
         rew_explr_buffer = deque(maxlen=100)
-        # 双端队列，用于存储最近 100 个 episode 的熵奖励值
         rew_entropy_buffer = deque(maxlen=100)
-        # 双端队列，用于存储最近 100 个 episode 的长度(步数)
         lenbuffer = deque(maxlen=100)
-        # 一个张量，表示当前 episode 的奖励值
-        # self.env.num_envs 表示形状等于并行环境的数量 dtype=torch.float 表示张量的数据类型 device=self.device 表示张量的设备
         cur_reward_sum = torch.zeros(self.env.num_envs, dtype=torch.float, device=self.device)
         # 一个张量，表示当前 episode 的探索奖励值
         cur_reward_explr_sum = torch.zeros(self.env.num_envs, dtype=torch.float, device=self.device)
@@ -331,15 +324,15 @@ class OnPolicyRunner:
             depth_latent_buffer = torch.cat(depth_latent_buffer, dim=0)
             depth_encoder_loss = 0
             # update the paras of depth encoder with scandots latent and depth latent
-            depth_encoder_loss = self.alg.update_depth_encoder(depth_latent_buffer, scandots_latent_buffer)
+            # depth_encoder_loss = self.alg.update_depth_encoder(depth_latent_buffer, scandots_latent_buffer)
 
             actions_teacher_buffer = torch.cat(actions_teacher_buffer, dim=0)
             actions_student_buffer = torch.cat(actions_student_buffer, dim=0)
             yaw_buffer_student = torch.cat(yaw_buffer_student, dim=0)
             yaw_buffer_teacher = torch.cat(yaw_buffer_teacher, dim=0)
-            depth_actor_loss, yaw_loss = self.alg.update_depth_actor(actions_student_buffer, actions_teacher_buffer, yaw_buffer_student, yaw_buffer_teacher)
+            # depth_actor_loss, yaw_loss = self.alg.update_depth_actor(actions_student_buffer, actions_teacher_buffer, yaw_buffer_student, yaw_buffer_teacher)
 
-            # depth_encoder_loss, depth_actor_loss = self.alg.update_depth_both(depth_latent_buffer, scandots_latent_buffer, actions_student_buffer, actions_teacher_buffer)
+            depth_encoder_loss, depth_actor_loss, yaw_loss = self.alg.update_depth_both(depth_latent_buffer, scandots_latent_buffer, actions_student_buffer, actions_teacher_buffer, yaw_buffer_student, yaw_buffer_teacher)
             stop = time.time()
             learn_time = stop - start
 

@@ -174,7 +174,11 @@ def update_cfg_from_args(env_cfg, cfg_train, args):
         # camera_noise
         if args.use_camera and args.noise:
             env_cfg.domain_rand.randomize_camera = True
-            env_cfg.domain_rand.randomize_depth_noise = True
+            env_cfg.domain_rand.randomize_depth_noise = False if args.web else True
+            if args.sensor_prob is not None:
+                env_cfg.domain_rand.sensor_prob = args.sensor_prob
+            if args.other_prob is not None:
+                env_cfg.domain_rand.other_prob = args.other_prob
 
     if cfg_train is not None:
         if args.seed is not None:
@@ -241,7 +245,10 @@ def get_args():
         {"name": "--no_wandb", "action": "store_true", "default": False, "help": "no wandb"},
 
         {"name": "--no_drand", "action": "store_true", "default": False, "help": "no domain randomization"},
-        {"name": "--noise", "action": "store_true", "default": False, "help": "add noise to camera"}
+        {"name": "--noise", "action": "store_true", "default": False, "help": "add noise to camera"},
+
+        {"name": "--sensor_prob", "type": float, "default": 0.5, "help": "Probability of sensor failure"},
+        {"name": "--other_prob", "type": float, "default": 0.05, "help": "Probability of other failure"}
     ]
     # parse arguments
     args = parse_arguments(

@@ -71,11 +71,26 @@ env 中的命令是一个四元组 [lin_vel_x, lin_vel_y, ang_vel_yaw, heading]
 
 在非无头模式下，即 headless=False 的情况下，gymapi.create_viewer 会创建出一个可视化窗口以观察仿真
 
+## 控制与命令方面
+
+最后的策略是通过什么命令控制的，遥控器吗，遥控器的命令是位置命令还是线速度命令还是方向命令
+在每一个 env 中，agent 的 command 都是持续该 episode 始终的吗，那与实际的操控是否有差别；如果有，通过什么样 randomization 可以 bridge 这种 gap
+
 ## 实验平台
 
 unitree a1/go1
 
+## 相机方面
+
+深度相机
+
+如何添加一个 RGBD 相机？
+
+为什么启用相机后要修改 terrain 中的 y_range？
+
 ## 地形方面
+
+是每个 episode 后，该 env 都会改变 terrian 吗
 
 是每个 episode 后，该 env 都会改变 terrian 吗
 
@@ -91,8 +106,6 @@ iteration step episode
 仿真中观察obs的维度：
 
 **obs包含了当前动作，包含之前的几个动作是否会有帮助?**
-
-实际：
 
 ## dynamic_rand
 
@@ -131,6 +144,14 @@ iteration step episode
     rand_pitch_range: 初始俯仰角的范围
 
 ## camera domain_rand
+
+光照条件的仿真是重点
+
+
+## 奖励方面
+
+mean_reward_task 是关键，即排除探索奖励的部分，反应出该 agent 在当前任务中的执行能力
+
 
 噪声、光照、纹理、延迟?
 

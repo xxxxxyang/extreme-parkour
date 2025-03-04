@@ -1,5 +1,14 @@
 # 说明文档
 
+在多 gpu 环境下，若训练带有 camera 的策略是遇到 
+```bash
+[Error] [carb.gym.plugin] cudaExternamMemoryGetMappedBuffer failed on segmentationImage buffer with error 101
+```
+可以设置当前可见 gpu 仅为一个，例如：(根据你的 nvidia-smi 结果确定)
+```bash
+export CUDA_VISIBLE_DEVICES=1
+```
+
 ## 参数
 
 必要参数：
@@ -14,6 +23,8 @@
 --resumeid      预训练模型id，选取想要加载的exptid即可 str
 --device        训练设备，默认为 cuda:0
 --max_iterations    最大迭代次数
+--no_drand      不使用动力学 domain_rand
+--noise         添加相机噪声
 
 得到的log目录结构为 `extreme-parkour/legged_gym/legged_gym/logs/proj_name/exptid/`
 
@@ -25,7 +36,7 @@ python train.py --exptid baset0 --proj_name test --device cuda:0 --max_iteration
 推荐 10000-15000 次迭代 (10k-15k)
 - 训练视觉策略
 ```bash
-python train.py --exptid test-0 --device cuda:0 --resume --resumeid baset0 --delay --use_camera --max_iterations 5000
+python train.py --exptid test-0 --device cuda:0 --resume --resumeid baset0 --delay --use_camera --max_iterations 5000 --headless (--noise)
 ```
 推荐 5000 次迭代 (5k)
 
@@ -44,8 +55,11 @@ python play.py --exptid baset0 --proj_name test --device cuda:0 --no_wandb --web
 ```
 - 运行具有深度相机策略
 ```bash
-python play.py --exptid test-0 --device cuda:0 --delay --use_camera --web
+python play.py --exptid test-0 --device cuda:0 --delay --use_camera --web --no_wandb (--noise)
 ```
+
+*关于 flask 服务器*：
+当 host 设置为 `0.0.0.0` ，可以通过 `http://service-ip:port/` 访问根URL
 
 ## 控制与命令方面
 
@@ -147,6 +161,30 @@ mean_reward_task 是关键，即排除探索奖励的部分，反应出该 agent
 
 关键问题：调整区域、噪声比例、噪声频率、分布选择
 
+```python
+# 深度图像大小：[]
+# depth_camera
+        randomize_camera = False    # randomize camera position, angle and fov
+        camera_pos_range = [[0.2, 0.2, 0.2], [0.5, 0.5, 0.5]] # [m]
+        camera_angle_range = [-5, 5] # [deg]
+        camera_fov_range = [60, 120] # [deg]
+
+        randomize_depth_noise = False   # randomize camera noise
+
+        light_intensity_prob = 0.2  # probability of changing light intensity
+        max_intensity  = 5.0   # max light intensity
+        light_rand_type = "uniform"  # 'uniform' or 'normal'
+
+        reflectivity_prob = 0.2   # probability of changing reflectivity
+        texture_scale = 0.05  # scale of the texture
+
+        max_occlusion_num = 3 # max number of occlusions
+        max_occ_width = 20    # max width of occlusions
+        max_occ_height = 20   # max height of occlusions
+
+        noise_type = "gaussian"   # noise type 'gaussian' or 'salt_pepper' or 'dedepth_dependent'
+```
+
 ## 视觉相机方面
 
 深度相机 depth_camera 相关
@@ -165,8 +203,6 @@ mean_reward_task 是关键，即排除探索奖励的部分，反应出该 agent
 - 在
 
 
-
-**如何添加一个 RGBD 相机 rgb_camera**
 
 *为什么启用相机后要修改 terrain 中的 y_range*
 

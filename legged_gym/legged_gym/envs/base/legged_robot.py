@@ -144,6 +144,7 @@ class LeggedRobot(BaseTask):
         self.render()
 
         for _ in range(self.cfg.control.decimation):
+            # apply actions
             self.torques = self._compute_torques(self.actions).view(self.torques.shape)
             self.gym.set_dof_actuation_force_tensor(self.sim, gymtorch.unwrap_tensor(self.torques))
             self.gym.simulate(self.sim)

@@ -142,7 +142,6 @@ def update_cfg_from_args(env_cfg, cfg_train, args):
         if env_cfg.depth.use_camera:
             env_cfg.terrain.y_range = [-0.1, 0.1]
 
-
         # num envs
         if args.num_envs is not None:
             env_cfg.env.num_envs = args.num_envs
@@ -256,7 +255,6 @@ def get_args():
         custom_parameters=custom_parameters)
 
     # name allignment
-    # 这些参数是默认设置的，如果用户没有设置的话
     args.sim_device_id = args.compute_device_id
     args.sim_device = args.sim_device_type
     if args.sim_device=='cuda':
@@ -336,7 +334,6 @@ def parse_arguments(description="Isaac Gym Example", headless=False, no_graphics
         args (argparse.Namespace): Parsed arguments
     """
     parser = argparse.ArgumentParser(description=description)
-    # 默认参数
     if headless:
         parser.add_argument('--headless', action='store_true', help='Run headless without creating a viewer window')
     if no_graphics:
@@ -354,7 +351,6 @@ def parse_arguments(description="Isaac Gym Example", headless=False, no_graphics
     parser.add_argument('--subscenes', type=int, default=0, help='Number of PhysX subscenes to simulate in parallel')
     parser.add_argument('--slices', type=int, help='Number of client threads that process env slices')
 
-    # 用户自定义参数
     for argument in custom_parameters:
         if ("name" in argument) and ("type" in argument or "action" in argument):
             help_str = ""
@@ -377,7 +373,6 @@ def parse_arguments(description="Isaac Gym Example", headless=False, no_graphics
 
     args = parser.parse_args()
 
-    # 若用户设置了device，使用用户设置的device，否则使用默认的device
     if args.device is not None:
         args.sim_device = args.device
         args.rl_device = args.device

@@ -33,7 +33,6 @@ import torch
 from typing import Tuple, Union
 
 # minimal interface of the environment
-# 定义了一个 RL 环境的最小接口
 class VecEnv(ABC):
     num_envs: int
     num_obs: int

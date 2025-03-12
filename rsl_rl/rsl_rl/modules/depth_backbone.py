@@ -32,7 +32,7 @@ class RecurrentDepthBackbone(nn.Module):
         depth_image = self.base_backbone(depth_image)
         depth_latent = self.combination_mlp(torch.cat((depth_image, proprioception), dim=-1))
         # depth_latent = self.base_backbone(depth_image)
-        depth_latent, self.hidden_states = self.rnn(depth_latent[:, None, :], self.hidden_states)
+        depth_latent, self.hidden_states = self.rnn(depth_latent[:, None, :], self.hidden_states)   # [batch_size, 1, 32] sequence length = 1(none)
         depth_latent = self.output_mlp(depth_latent.squeeze(1))
         
         return depth_latent
@@ -71,7 +71,7 @@ class DepthOnlyFCBackbone58x87(nn.Module):
     def __init__(self, prop_dim, scandots_output_dim, hidden_state_dim, output_activation=None, num_frames=1):
         super().__init__()
 
-        self.num_frames = num_frames
+        self.num_frames = num_frames    # number of frames to be stacked (default: 1 to be depth image)
         activation = nn.ELU()
         self.image_compression = nn.Sequential(
             # [1, 58, 87]
@@ -83,7 +83,7 @@ class DepthOnlyFCBackbone58x87(nn.Module):
             nn.Conv2d(in_channels=32, out_channels=64, kernel_size=3),
             activation,
             nn.Flatten(),
-            # [32, 25, 39]
+            # [64, 25, 39]
             nn.Linear(64 * 25 * 39, 128),
             activation,
             nn.Linear(128, scandots_output_dim)

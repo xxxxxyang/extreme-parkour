@@ -87,14 +87,14 @@ class StateHistoryEncoder(nn.Module):
 
 # Actor-Critic model
 class Actor(nn.Module):
-    def __init__(self, num_prop, 
-                 num_scan, 
-                 num_actions, 
-                 scan_encoder_dims,
-                 actor_hidden_dims, 
-                 priv_encoder_dims, 
-                 num_priv_latent, 
-                 num_priv_explicit, 
+    def __init__(self, num_prop,        # n_proprio
+                 num_scan,              # n_scan
+                 num_actions,           # n_actions
+                 scan_encoder_dims,     # [256, 256, 256]
+                 actor_hidden_dims,     # [256, 256, 256]
+                 priv_encoder_dims,     # [64, 20]
+                 num_priv_latent,       # n_priv_latent
+                 num_priv_explicit,     # n_priv
                  num_hist, activation, 
                  tanh_encoder_output=False) -> None:
         super().__init__()
@@ -158,6 +158,7 @@ class Actor(nn.Module):
         self.actor_backbone = nn.Sequential(*actor_layers)
 
     def forward(self, obs, hist_encoding: bool, eval=False, scandots_latent=None):
+        # train mode
         if not eval:
             if self.if_scan_encode:
                 obs_scan = obs[:, self.num_prop:self.num_prop + self.num_scan]
@@ -207,28 +208,28 @@ class Actor(nn.Module):
         scan = obs[:, self.num_prop:self.num_prop + self.num_scan]
         return self.scan_encoder(scan)
 
-# RMA(recurrent multilayer attention) 循环多层注意力
+# RMA(recurrent multilayer attention)
 class ActorCriticRMA(nn.Module):
     is_recurrent = False
-    def __init__(self,  num_prop,
-                        num_scan,
-                        num_critic_obs,
-                        num_priv_latent, 
-                        num_priv_explicit,
-                        num_hist,
-                        num_actions,
+    def __init__(self,  num_prop,               # n_proprio
+                        num_scan,               # n_scan
+                        num_critic_obs,         # n_proprio + n_scan + n_priv + n_priv_latent + histroy_len*n_proprio
+                        num_priv_latent,        # n_priv_latent
+                        num_priv_explicit,      # n_priv
+                        num_hist,               # history_len
+                        num_actions,            # num_actions
                         scan_encoder_dims=[256, 256, 256],
                         actor_hidden_dims=[256, 256, 256],
                         critic_hidden_dims=[256, 256, 256],
                         activation='elu',
                         init_noise_std=1.0,
                         **kwargs):
-        if kwargs:
-            print("ActorCritic.__init__ got unexpected arguments, which will be ignored: " + str([key for key in kwargs.keys()]))
+        # if kwargs:
+        #     print("ActorCritic.__init__ got unexpected arguments, which will be ignored: " + str([key for key in kwargs.keys()]))
         super(ActorCriticRMA, self).__init__()
 
         self.kwargs = kwargs
-        priv_encoder_dims= kwargs['priv_encoder_dims']
+        priv_encoder_dims= kwargs['priv_encoder_dims']  # [64, 20]
         activation = get_activation(activation)
         
         self.actor = Actor(num_prop, num_scan, num_actions, scan_encoder_dims, actor_hidden_dims, priv_encoder_dims, num_priv_latent, num_priv_explicit, num_hist, activation, tanh_encoder_output=kwargs['tanh_encoder_output'])
@@ -280,21 +281,21 @@ class ActorCriticRMA(nn.Module):
     def entropy(self):
         return self.distribution.entropy().sum(dim=-1)
 
-    # 根据当前的观测，更新 actor 的分布
+    # update the distribution of the actor based on the current observations
     def update_distribution(self, observations, hist_encoding):
         mean = self.actor(observations, hist_encoding)
-        # 使用均值和标准差构建一个正态分布
+        # set the distribution to be a normal distribution with the mean and std
         self.distribution = Normal(mean, mean*0. + self.std)
 
-    # 根据当前的观测，通过 sample 从分布中采样一个动作
+    # get the action based on the current observations
     def act(self, observations, hist_encoding=False, **kwargs):
-        # 更新分布
         self.update_distribution(observations, hist_encoding)
         return self.distribution.sample()
     
     def get_actions_log_prob(self, actions):
         return self.distribution.log_prob(actions).sum(dim=-1)
 
+    # get the action_mean based on the current observations(for detection)
     def act_inference(self, observations, hist_encoding=False, eval=False, scandots_latent=None, **kwargs):
         if not eval:
             actions_mean = self.actor(observations, hist_encoding, eval, scandots_latent)
@@ -303,6 +304,7 @@ class ActorCriticRMA(nn.Module):
             actions_mean, latent_hist, latent_priv = self.actor(observations, hist_encoding, eval=True)
             return actions_mean, latent_hist, latent_priv
 
+    # get the value of the current state(observation)
     def evaluate(self, critic_observations, **kwargs):
         value = self.critic(critic_observations)
         return value

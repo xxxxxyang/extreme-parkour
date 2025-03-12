@@ -45,18 +45,18 @@ class LeggedRobotCfg(BaseConfig):
     class env:
         num_envs = 6144
 
-        n_scan = 132
-        n_priv = 3+3 +3
-        n_priv_latent = 4 + 1 + 12 +12
-        n_proprio = 3 + 2 + 3 + 4 + 36 + 5  #
+        n_scan = 132    # number of dimensions of the laser scan
+        n_priv = 3 + 3 + 3   # number of dimensions of the privileged explicit observations (3 pos, 3 vel, 3 rot)
+        n_priv_latent = 4 + 1 + 12 + 12 # number of dimensions of the privileged latent observations, such as mass parameters, friction, motor strength, etc.
+        n_proprio = 3 + 2 + 3 + 4 + 36 + 5  # proprioceptive observations (3 pos, 2 vel, 3 rot, 4 joint angles, 36 joint velocities, 5 joint torques)
         history_len = 10
 
-        num_observations = n_proprio + n_scan + history_len*n_proprio + n_priv_latent + n_priv #n_scan + n_proprio + n_priv #187 + 47 + 5 + 12 
+        num_observations = n_proprio + n_scan + history_len*n_proprio + n_priv_latent + n_priv # 53 + 132 + 10*53 + 29 + 9 = 800
         num_privileged_obs = None # if not None a priviledge_obs_buf will be returned by step() (critic obs for assymetric training). None is returned otherwise 
         num_actions = 12
         env_spacing = 3.  # not used with heightfields/trimeshes 
         send_timeouts = True # send time out information to the algorithm
-        episode_length_s = 20 # episode length in seconds (20 seconds per episode)
+        episode_length_s = 20 # episode length in seconds (20 seconds per episode max)
         obs_type = "og"
 
 
@@ -370,7 +370,7 @@ class LeggedRobotCfg(BaseConfig):
         lookat = [11., 5, 3.]  # [m]
 
     class sim:
-        dt =  0.005 # [s] @SIM_DT 200Hz, with decimation 4 the policy runs at 50Hz -> @POLICY_DT=0.02
+        dt =  0.005 # [s] @SIM_DT 200Hz, with decimation=4 the step runs at 50Hz -> @STEP_DT=0.02
         substeps = 1
         gravity = [0., 0. ,-9.81]  # [m/s^2]
         up_axis = 1  # 0 is y, 1 is z
@@ -393,7 +393,7 @@ class LeggedRobotCfgPPO(BaseConfig):
     runner_class_name = 'OnPolicyRunner'
  
     class policy:
-        init_noise_std = 1.0
+        init_noise_std = 1.0 # initial noise std in order to encourage exploration
         continue_from_last_std = True
         scan_encoder_dims = [128, 64, 32]
         actor_hidden_dims = [512, 256, 128]
@@ -428,7 +428,7 @@ class LeggedRobotCfgPPO(BaseConfig):
     
     class depth_encoder:
         if_depth = LeggedRobotCfg.depth.use_camera
-        depth_shape = LeggedRobotCfg.depth.resized
+        depth_shape = LeggedRobotCfg.depth.resized # (87, 58) tensor shape of the depth image
         buffer_len = LeggedRobotCfg.depth.buffer_len
         hidden_dims = 512
         learning_rate = 1.e-3

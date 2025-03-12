@@ -28,8 +28,6 @@
 #
 # Copyright (c) 2021 ETH Zurich, Nikita Rudin
 
-# 基于策略梯度的强化学习算法
-
 import time
 import os
 from collections import deque
@@ -49,7 +47,6 @@ import sys
 from copy import copy, deepcopy
 import warnings
 
-# 使用PPO算法进行训练的类
 class OnPolicyRunner:
 
     def __init__(self,
@@ -77,6 +74,7 @@ class OnPolicyRunner:
                                                       self.env.num_actions,
                                                       **self.policy_cfg).to(self.device)
         estimator = Estimator(input_dim=env.cfg.env.n_proprio, output_dim=env.cfg.env.n_priv, hidden_dims=self.estimator_cfg["hidden_dims"]).to(self.device)
+
         # Depth encoder
         self.if_depth = self.depth_encoder_cfg["if_depth"]
         if self.if_depth:
@@ -89,10 +87,7 @@ class OnPolicyRunner:
         else:
             depth_encoder = None
             depth_actor = None
-        # self.depth_encoder = depth_encoder
-        # self.depth_encoder_optimizer = optim.Adam(self.depth_encoder.parameters(), lr=self.depth_encoder_cfg["learning_rate"])
-        # self.depth_encoder_paras = self.depth_encoder_cfg
-        # self.depth_encoder_criterion = nn.MSELoss()
+
         # Create algorithm
         alg_class = eval(self.cfg["algorithm_class_name"]) # PPO
         self.alg: PPO = alg_class(actor_critic, 
@@ -111,7 +106,6 @@ class OnPolicyRunner:
             [self.env.num_actions],
         )
 
-        # 当 if_depth 为 False 时，使用 learn_RL 函数，否则使用 learn_vision 函数
         self.learn = self.learn_RL if not self.if_depth else self.learn_vision
             
         # Log
@@ -122,9 +116,8 @@ class OnPolicyRunner:
         self.current_learning_iteration = 0
         
 
-    # num_learning_iterations: 学习迭代次数
-    # init_at_random_ep_len: 是否在每次学习迭代开始时随机初始化 episode 长度
     def learn_RL(self, num_learning_iterations, init_at_random_ep_len=False):
+        # initialize loss
         mean_value_loss = 0.
         mean_surrogate_loss = 0.
         mean_estimator_loss = 0.
@@ -134,33 +127,29 @@ class OnPolicyRunner:
         mean_priv_reg_loss = 0. 
         priv_reg_coef = 0.
         entropy_coef = 0.
-        # initialize writer
-        # if self.log_dir is not None and self.writer is None:
-        #     self.writer = SummaryWriter(log_dir=self.log_dir, flush_secs=10)
+
         if init_at_random_ep_len:
             # different episode length for each env
             self.env.episode_length_buf = torch.randint_like(self.env.episode_length_buf, high=int(self.env.max_episode_length))
-        # 观测数据：obs, critic_obs, infos
+
+        # initialize observations
         obs = self.env.get_observations()
         privileged_obs = self.env.get_privileged_observations()
         critic_obs = privileged_obs if privileged_obs is not None else obs
         obs, critic_obs = obs.to(self.device), critic_obs.to(self.device)
         infos = {}
         infos["depth"] = self.env.depth_buffer.clone().to(self.device) if self.if_depth else None
-        # 使用 actor_critic 进行训练(ppo) train()方法继承自nn.Module
         self.alg.actor_critic.train() # switch to train mode (for dropout for example)
 
+        # initialize writer which is used to store and trace the info of RL training (for logging)
         ep_infos = []
         rewbuffer = deque(maxlen=100)
         rew_explr_buffer = deque(maxlen=100)
         rew_entropy_buffer = deque(maxlen=100)
         lenbuffer = deque(maxlen=100)
         cur_reward_sum = torch.zeros(self.env.num_envs, dtype=torch.float, device=self.device)
-        # 一个张量，表示当前 episode 的探索奖励值
         cur_reward_explr_sum = torch.zeros(self.env.num_envs, dtype=torch.float, device=self.device)
-        # 一个张量，表示当前 episode 的熵奖励值
         cur_reward_entropy_sum = torch.zeros(self.env.num_envs, dtype=torch.float, device=self.device)
-        # 一个张量，表示当前 episode 的长度(步数)
         cur_episode_length = torch.zeros(self.env.num_envs, dtype=torch.float, device=self.device)
 
         # if load last training state, current_learning_iteration != 0
@@ -171,10 +160,9 @@ class OnPolicyRunner:
 
         for it in range(self.current_learning_iteration, tot_iter):
             start = time.time()
-            # 每隔一定的迭代次数更新历史编码
             hist_encoding = it % self.dagger_update_freq == 0
 
-            # Rollout  [60 steps per episode]
+            # Rollout  [24 steps per iteration]
             with torch.inference_mode():
                 for i in range(self.num_steps_per_env):
                     actions = self.alg.act(obs, critic_obs, infos, hist_encoding)
@@ -236,6 +224,11 @@ class OnPolicyRunner:
         self.save(os.path.join(self.log_dir, 'model_{}.pt'.format(self.current_learning_iteration)))
 
     def learn_vision(self, num_learning_iterations, init_at_random_ep_len=False):
+        # initialize loss
+        depth_encoder_loss = 0.
+        depth_actor_loss = 0.
+        yaw_loss = 0.
+
         # total iterations
         tot_iter = self.current_learning_iteration + num_learning_iterations
         self.start_learning_iteration = copy(self.current_learning_iteration)
@@ -247,9 +240,17 @@ class OnPolicyRunner:
         cur_reward_sum = torch.zeros(self.env.num_envs, dtype=torch.float, device=self.device)
         cur_episode_length = torch.zeros(self.env.num_envs, dtype=torch.float, device=self.device)
 
+        # initialize buffer
+        depth_latent_buffer = []
+        scandots_latent_buffer = []
+        actions_teacher_buffer = []
+        actions_student_buffer = []
+        yaw_buffer_student = []
+        yaw_buffer_teacher = []
+        delta_yaw_ok_buffer = []
         obs = self.env.get_observations()   # initial observation
         infos = {}  # additional information such as depth and delta_yaw_ok
-        infos["depth"] = self.env.depth_buffer.clone().to(self.device)[:, -1] if self.if_depth else None
+        infos["depth"] = self.env.depth_buffer.clone().to(self.device)[:, -1] if self.if_depth else None # get the latest depth image in all envs ([envs, 1, 58, 87])
         infos["delta_yaw_ok"] = torch.ones(self.env.num_envs, dtype=torch.bool, device=self.device)
         # set model to train mode
         self.alg.depth_encoder.train()
@@ -258,13 +259,15 @@ class OnPolicyRunner:
         num_pretrain_iter = 0   # number of pretraining iterations to train depth encoder
         for it in range(self.current_learning_iteration, tot_iter):
             start = time.time()
-            depth_latent_buffer = []
-            scandots_latent_buffer = []
-            actions_teacher_buffer = []
-            actions_student_buffer = []
-            yaw_buffer_student = []
-            yaw_buffer_teacher = []
-            delta_yaw_ok_buffer = []
+            depth_latent_buffer.clear()
+            scandots_latent_buffer.clear()
+            actions_teacher_buffer.clear()
+            actions_student_buffer.clear()
+            yaw_buffer_student.clear()
+            yaw_buffer_teacher.clear()
+            delta_yaw_ok_buffer.clear()
+
+            # Rollout [24*update_interval steps per iteration]
             for i in range(self.depth_encoder_cfg["num_steps_per_env"]):
                 if infos["depth"] != None:
                     # if use_camera
@@ -379,7 +382,7 @@ class OnPolicyRunner:
         wandb_dict['Perf/learning_time'] = locs['learn_time']
         if len(locs['rewbuffer']) > 0:
             wandb_dict['Train/mean_reward'] = statistics.mean(locs['rewbuffer'])
-            wandb_dict['Train/mean_episode_length'] = statistics.mean(locs['lenbuffer'])
+            wandb_dict['Train/mean_episode_length'] = statistics.mean(locs['lensabuffer'])
         
         wandb.log(wandb_dict, step=locs['it'])
 
@@ -576,7 +579,7 @@ class OnPolicyRunner:
         if device is not None:
             self.alg.depth_encoder.to(device)
         return self.alg.depth_encoder
-    
+
     def get_disc_inference_policy(self, device=None):
         self.alg.discriminator.eval() # switch to evaluation mode (dropout for example)
         if device is not None:

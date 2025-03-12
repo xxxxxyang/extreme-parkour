@@ -55,7 +55,6 @@ class TaskRegistry():
         self.env_cfgs[name] = env_cfg
         self.train_cfgs[name] = train_cfg
     
-    # 
     def get_task_class(self, name: str) -> VecEnv:
         return self.task_classes[name]
     
@@ -66,7 +65,6 @@ class TaskRegistry():
         env_cfg.seed = train_cfg.seed
         return env_cfg, train_cfg
     
-    # 创建一个已有的环境或从提供的配置文件创建一个环境
     def make_env(self, name, args=None, env_cfg=None) -> Tuple[VecEnv, LeggedRobotCfg]:
         """ Creates an environment either from a registered namme or from the provided config file.
 
@@ -97,55 +95,55 @@ class TaskRegistry():
         env_cfg, _ = update_cfg_from_args(env_cfg, None, args)
 
         # attach env_cfg.domain_randomization to wandb.config
-        if not args.no_wandb:
-            domain_rand_cfg = {
-                "domain_rand": {
-                    "randomize_friction"    : env_cfg.domain_rand.randomize_friction,
-                    "randomize_base_mass"   : env_cfg.domain_rand.randomize_base_mass,
-                    "randomize_base_com"    : env_cfg.domain_rand.randomize_base_com,
-                    "push_robots"           : env_cfg.domain_rand.push_robots,
-                    "randomize_motor"       : env_cfg.domain_rand.randomize_motor,
-                    "action_delay"          : env_cfg.domain_rand.action_delay,
+        if not args.no_wandb and not args.debug:
+            domain_rand_cfg_dict = class_to_dict(env_cfg.domain_rand)
+            # domain_rand_cfg = {
+            #     "domain_rand": {
+            #         "randomize_friction"    : env_cfg.domain_rand.randomize_friction,
+            #         "randomize_base_mass"   : env_cfg.domain_rand.randomize_base_mass,
+            #         "randomize_base_com"    : env_cfg.domain_rand.randomize_base_com,
+            #         "push_robots"           : env_cfg.domain_rand.push_robots,
+            #         "randomize_motor"       : env_cfg.domain_rand.randomize_motor,
+            #         "action_delay"          : env_cfg.domain_rand.action_delay,
 
-                    "randomize_camera"      : env_cfg.domain_rand.randomize_camera,
-                    "randomize_depth_noise" : env_cfg.domain_rand.randomize_depth_noise
-                },
-                "domain_rand_para": {
-                    "friction_range"        : env_cfg.domain_rand.friction_range,
-                    "added_mass_range"      : env_cfg.domain_rand.added_mass_range,
-                    "added_com_range"       : env_cfg.domain_rand.added_com_range,
-                    "push_interval_s"       : env_cfg.domain_rand.push_interval_s,
-                    "max_push_vel_xy"       : env_cfg.domain_rand.max_push_vel_xy,
-                    "motor_strength_range"  : env_cfg.domain_rand.motor_strength_range,
-                    "static_motor_strength" : env_cfg.domain_rand.static_motor_strength,
-                    "delay_update_global_steps" : env_cfg.domain_rand.delay_update_global_steps,
-                    "action_curr_step"      : env_cfg.domain_rand.action_curr_step,
-                    "action_curr_step_scratch" : env_cfg.domain_rand.action_curr_step_scratch,
-                    "action_delay_view"     : env_cfg.domain_rand.action_delay_view,
-                    "action_buf_len"        : env_cfg.domain_rand.action_buf_len
-                },
-                "domain_rand_noise": {
-                    "camera_pos_range"      : env_cfg.domain_rand.camera_pos_range,
-                    "camera_angle_range"    : env_cfg.domain_rand.camera_angle_range,
-                    "camera_fov_range"      : env_cfg.domain_rand.camera_fov_range,
-                    "light_intensity_prob"  : env_cfg.domain_rand.light_intensity_prob,
-                    "max_intensity"         : env_cfg.domain_rand.max_intensity,
-                    "light_rand_type"       : env_cfg.domain_rand.light_rand_type,
-                    "reflectivity_prob"     : env_cfg.domain_rand.reflectivity_prob,
-                    "texture_scale"         : env_cfg.domain_rand.texture_scale,
-                    "max_occlusion_num"     : env_cfg.domain_rand.max_occlusion_num,
-                    "max_occ_width"         : env_cfg.domain_rand.max_occ_width,
-                    "max_occ_height"        : env_cfg.domain_rand.max_occ_height,
-                    "noise_type"            : env_cfg.domain_rand.noise_type
-                }
-            }
-            if not args.no_wandb and not args.debug:
-                wandb.config.update(domain_rand_cfg)
+            #         "randomize_camera"      : env_cfg.domain_rand.randomize_camera,
+            #         "randomize_depth_noise" : env_cfg.domain_rand.randomize_depth_noise
+            #     },
+            #     "domain_rand_para": {
+            #         "friction_range"        : env_cfg.domain_rand.friction_range,
+            #         "added_mass_range"      : env_cfg.domain_rand.added_mass_range,
+            #         "added_com_range"       : env_cfg.domain_rand.added_com_range,
+            #         "push_interval_s"       : env_cfg.domain_rand.push_interval_s,
+            #         "max_push_vel_xy"       : env_cfg.domain_rand.max_push_vel_xy,
+            #         "motor_strength_range"  : env_cfg.domain_rand.motor_strength_range,
+            #         "static_motor_strength" : env_cfg.domain_rand.static_motor_strength,
+            #         "delay_update_global_steps" : env_cfg.domain_rand.delay_update_global_steps,
+            #         "action_curr_step"      : env_cfg.domain_rand.action_curr_step,
+            #         "action_curr_step_scratch" : env_cfg.domain_rand.action_curr_step_scratch,
+            #         "action_delay_view"     : env_cfg.domain_rand.action_delay_view,
+            #         "action_buf_len"        : env_cfg.domain_rand.action_buf_len
+            #     },
+            #     "domain_rand_noise": {
+            #         "camera_pos_range"      : env_cfg.domain_rand.camera_pos_range,
+            #         "camera_angle_range"    : env_cfg.domain_rand.camera_angle_range,
+            #         "camera_fov_range"      : env_cfg.domain_rand.camera_fov_range,
+            #         "light_intensity_prob"  : env_cfg.domain_rand.light_intensity_prob,
+            #         "max_intensity"         : env_cfg.domain_rand.max_intensity,
+            #         "light_rand_type"       : env_cfg.domain_rand.light_rand_type,
+            #         "reflectivity_prob"     : env_cfg.domain_rand.reflectivity_prob,
+            #         "texture_scale"         : env_cfg.domain_rand.texture_scale,
+            #         "max_occlusion_num"     : env_cfg.domain_rand.max_occlusion_num,
+            #         "max_occ_width"         : env_cfg.domain_rand.max_occ_width,
+            #         "max_occ_height"        : env_cfg.domain_rand.max_occ_height,
+            #         "noise_type"            : env_cfg.domain_rand.noise_type
+            #     }
+            # }
+            wandb.config.update(domain_rand_cfg_dict)
 
         set_seed(env_cfg.seed)
         # parse sim params (convert to dict first)
-        sim_params = {"sim": class_to_dict(env_cfg.sim)} # 把sim类转换为字典
-        sim_params = parse_sim_params(args, sim_params) # 把sim_params 和 args 转换为 SimParams 类
+        sim_params = {"sim": class_to_dict(env_cfg.sim)}
+        sim_params = parse_sim_params(args, sim_params)
         env = task_class(   cfg=env_cfg,
                             sim_params=sim_params,
                             physics_engine=args.physics_engine,
@@ -153,7 +151,6 @@ class TaskRegistry():
                             headless=args.headless)
         return env, env_cfg
 
-    # 从注册的名字或者提供的配置文件创建一个训练算法
     def make_alg_runner(self, env, name=None, args=None, train_cfg=None, init_wandb=True, log_root="default", **kwargs) -> Tuple[OnPolicyRunner, LeggedRobotCfgPPO]:
         """ Creates the training algorithm  either from a registered namme or from the provided config file.
 

@@ -152,13 +152,10 @@ class PPO:
             self.transition.hidden_states = self.actor_critic.get_hidden_states()
         # Compute the actions and values, use proprio to compute estimated priv_states then actions, but store true priv_states
         if self.train_with_estimated_states:
-            # 若使用估计的priv_states训练，则将priv_states替换为估计的priv_states
             obs_est = obs.clone()
             # estimate priv_states
             priv_states_estimated = self.estimator(obs_est[:, :self.num_prop])
-            # 将估计的priv_states放入obs中
             obs_est[:, self.num_prop+self.num_scan:self.num_prop+self.num_scan+self.priv_states_dim] = priv_states_estimated
-            # 使用估计的 priv_states 通过actor_critic计算动作
             self.transition.actions = self.actor_critic.act(obs_est, hist_encoding).detach()
         else:
             self.transition.actions = self.actor_critic.act(obs, hist_encoding).detach()

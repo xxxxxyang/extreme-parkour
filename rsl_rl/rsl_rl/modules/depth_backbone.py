@@ -71,7 +71,7 @@ class DepthOnlyFCBackbone58x87(nn.Module):
     def __init__(self, prop_dim, scandots_output_dim, hidden_state_dim, output_activation=None, num_frames=1):
         super().__init__()
 
-        self.num_frames = num_frames    # number of frames to be stacked (default: 1 to be depth image)
+        self.num_frames = num_frames    # number of frames to be stacked (default: 1 to be single image)
         activation = nn.ELU()
         self.image_compression = nn.Sequential(
             # [1, 58, 87]

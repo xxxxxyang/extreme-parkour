@@ -30,6 +30,7 @@
 
 import torch
 import torch.nn as nn
+import torch.nn.functional as F
 import torch.optim as optim
 
 from rsl_rl.modules import ActorCriticRMA
@@ -129,6 +130,7 @@ class PPO:
             self.depth_encoder_paras = depth_encoder_paras
             self.depth_actor = depth_actor
             self.depth_actor_optimizer = optim.Adam([*self.depth_actor.parameters(), *self.depth_encoder.parameters()], lr=depth_encoder_paras["learning_rate"])
+            self.depth_PAE_optimizer = torch.optim.AdamW([{"params": self.depth_encoder.parameters(), "lr": depth_encoder_paras["learning_rate"]}, {"params": self.depth_actor.parameters(), "lr": depth_encoder_paras["learning_rate"]},], weight_decay=1e-4)
 
     def init_storage(self, num_envs, num_transitions_per_env, actor_obs_shape, critic_obs_shape, action_shape):
         self.storage = RolloutStorage(num_envs, num_transitions_per_env, actor_obs_shape,  critic_obs_shape, action_shape, self.device)
@@ -360,6 +362,27 @@ class PPO:
             nn.utils.clip_grad_norm_([*self.depth_actor.parameters(), *self.depth_encoder.parameters()], self.max_grad_norm)
             self.depth_actor_optimizer.step()
             return depth_encoder_loss.item(), depth_actor_loss.item(), yaw_loss.item()
+        
+    def update_depth_PAE(self, depth_latent_batch, scandots_latent_batch, actions_student_batch, actions_teacher_batch, yaw_student_batch, yaw_teacher_batch):
+        if self.if_depth:
+            # L1 loss
+            # depth_encoder_loss = (scandots_latent_batch.detach() - depth_latent_batch).norm(p=2, dim=1).mean()
+            depth_PAE_loss = F.mse_loss(depth_latent_batch, scandots_latent_batch.detach())
+
+            # L2 loss
+            depth_actor_loss = (actions_teacher_batch.detach() - actions_student_batch).norm(p=2, dim=1).mean()
+            yaw_loss = (yaw_teacher_batch.detach() - yaw_student_batch).norm(p=2, dim=1).mean()
+
+            # TODO 加权平均以进行尺度匹配
+            total_loss = depth_PAE_loss + depth_actor_loss + yaw_loss
+
+            self.depth_PAE_optimizer.zero_grad()
+            total_loss.backward()
+            nn.utils.clip_grad_norm_([*self.depth_actor.parameters(), *self.depth_encoder.parameters()], self.max_grad_norm)
+            self.depth_PAE_optimizer.step()
+            return depth_PAE_loss.item(), depth_actor_loss.item(), yaw_loss.item()
+        else:
+            raise NotImplementedError("Depth encoder is not initialized.")
     
     def update_counter(self):
         self.counter += 1

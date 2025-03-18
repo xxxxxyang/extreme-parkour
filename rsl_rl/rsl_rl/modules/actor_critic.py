@@ -169,7 +169,10 @@ class Actor(nn.Module):
                 obs_prop_scan = torch.cat([obs[:, :self.num_prop], scan_latent], dim=1)
             else:
                 obs_prop_scan = obs[:, :self.num_prop + self.num_scan]
+
+            # priv_explicit
             obs_priv_explicit = obs[:, self.num_prop + self.num_scan:self.num_prop + self.num_scan + self.num_priv_explicit]
+
             if hist_encoding:
                 latent = self.infer_hist_latent(obs)
             else:

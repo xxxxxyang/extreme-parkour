@@ -240,14 +240,6 @@ class OnPolicyRunner:
         cur_reward_sum = torch.zeros(self.env.num_envs, dtype=torch.float, device=self.device)
         cur_episode_length = torch.zeros(self.env.num_envs, dtype=torch.float, device=self.device)
 
-        # initialize buffer
-        depth_latent_buffer = []
-        scandots_latent_buffer = []
-        actions_teacher_buffer = []
-        actions_student_buffer = []
-        yaw_buffer_student = []
-        yaw_buffer_teacher = []
-        delta_yaw_ok_buffer = []
         obs = self.env.get_observations()   # initial observation
         infos = {}  # additional information such as depth and delta_yaw_ok
         infos["depth"] = self.env.depth_buffer.clone().to(self.device)[:, -1] if self.if_depth else None # get the latest depth image in all envs ([envs, 1, 58, 87])
@@ -259,13 +251,13 @@ class OnPolicyRunner:
         num_pretrain_iter = 0   # number of pretraining iterations to train depth encoder
         for it in range(self.current_learning_iteration, tot_iter):
             start = time.time()
-            depth_latent_buffer.clear()
-            scandots_latent_buffer.clear()
-            actions_teacher_buffer.clear()
-            actions_student_buffer.clear()
-            yaw_buffer_student.clear()
-            yaw_buffer_teacher.clear()
-            delta_yaw_ok_buffer.clear()
+            depth_latent_buffer = []
+            scandots_latent_buffer = []
+            actions_teacher_buffer = []
+            actions_student_buffer = []
+            yaw_buffer_student = []
+            yaw_buffer_teacher = []
+            delta_yaw_ok_buffer = []
 
             # Rollout [24*update_interval steps per iteration]
             for i in range(self.depth_encoder_cfg["num_steps_per_env"]):
@@ -382,7 +374,7 @@ class OnPolicyRunner:
         wandb_dict['Perf/learning_time'] = locs['learn_time']
         if len(locs['rewbuffer']) > 0:
             wandb_dict['Train/mean_reward'] = statistics.mean(locs['rewbuffer'])
-            wandb_dict['Train/mean_episode_length'] = statistics.mean(locs['lensabuffer'])
+            wandb_dict['Train/mean_episode_length'] = statistics.mean(locs['lenbuffer'])
         
         wandb.log(wandb_dict, step=locs['it'])
 

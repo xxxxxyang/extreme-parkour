@@ -172,8 +172,8 @@ def update_cfg_from_args(env_cfg, cfg_train, args):
 
         # camera_noise
         if args.use_camera and args.noise:
-            env_cfg.domain_rand.randomize_camera = True
-            env_cfg.domain_rand.randomize_depth_noise = False if args.web else True
+            # env_cfg.domain_rand.randomize_camera = True
+            env_cfg.domain_rand.randomize_depth_noise = True
             if args.sensor_prob is not None:
                 env_cfg.domain_rand.sensor_prob = args.sensor_prob
             if args.other_prob is not None:

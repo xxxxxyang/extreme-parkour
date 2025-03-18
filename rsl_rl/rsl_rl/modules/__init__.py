@@ -33,3 +33,5 @@ from .actor_critic import ActorCriticRMA
 from .estimator import Estimator
 from .estimator import Discriminator, DiscriminatorLSD, DiscriminatorContDIAYN
 from .depth_backbone import *
+from .depth_temporal import *
+from .PAE import *

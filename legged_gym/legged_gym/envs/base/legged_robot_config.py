@@ -267,7 +267,7 @@ class LeggedRobotCfg(BaseConfig):
         original = (106, 60)
         resized = (87, 58)
         horizontal_fov = 87
-        buffer_len = 2
+        buffer_len = 11 # include 1s' depth image (10 frames/second)
         
         near_clip = 0
         far_clip = 2

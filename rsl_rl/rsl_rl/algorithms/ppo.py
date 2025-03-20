@@ -363,18 +363,20 @@ class PPO:
             self.depth_actor_optimizer.step()
             return depth_encoder_loss.item(), depth_actor_loss.item(), yaw_loss.item()
         
-    def update_depth_PAE(self, depth_latent_batch, scandots_latent_batch, actions_student_batch, actions_teacher_batch, yaw_student_batch, yaw_teacher_batch):
+    def update_depth_PAE(self, depth_latent_batch, scandots_latent_batch, actions_student_batch, actions_teacher_batch, yaw_student_batch, yaw_teacher_batch, time_range, n_proprio):
         if self.if_depth:
             # L1 loss
             # depth_encoder_loss = (scandots_latent_batch.detach() - depth_latent_batch).norm(p=2, dim=1).mean()
-            depth_PAE_loss = F.mse_loss(depth_latent_batch, scandots_latent_batch.detach())
+            scandots_latent_batch = scandots_latent_batch.reshape(scandots_latent_batch.shape[0], (time_range*(n_proprio + 32))) # [B, (32+n_proprio) * T]
+            # depth_PAE_loss = F.mse_loss(depth_latent_batch, scandots_latent_batch)
+            depth_PAE_loss = (depth_latent_batch - scandots_latent_batch).norm(p=2, dim=1).mean()
 
             # L2 loss
             depth_actor_loss = (actions_teacher_batch.detach() - actions_student_batch).norm(p=2, dim=1).mean()
             yaw_loss = (yaw_teacher_batch.detach() - yaw_student_batch).norm(p=2, dim=1).mean()
 
-            # TODO 加权平均以进行尺度匹配
-            total_loss = depth_PAE_loss + depth_actor_loss + yaw_loss
+            weight = 3.0
+            total_loss = depth_PAE_loss + weight*depth_actor_loss + 1.5*yaw_loss
 
             self.depth_PAE_optimizer.zero_grad()
             total_loss.backward()

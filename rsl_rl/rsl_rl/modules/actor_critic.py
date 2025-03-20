@@ -221,9 +221,9 @@ class ActorCriticRMA(nn.Module):
                         num_priv_explicit,      # n_priv
                         num_hist,               # history_len
                         num_actions,            # num_actions
-                        scan_encoder_dims=[256, 256, 256],
-                        actor_hidden_dims=[256, 256, 256],
-                        critic_hidden_dims=[256, 256, 256],
+                        scan_encoder_dims=[256, 256, 256],  # [128, 64, 32]
+                        actor_hidden_dims=[256, 256, 256],  # [512, 256, 128]
+                        critic_hidden_dims=[256, 256, 256], # [512, 256, 128]
                         activation='elu',
                         init_noise_std=1.0,
                         **kwargs):

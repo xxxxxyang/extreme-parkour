@@ -78,11 +78,17 @@ class OnPolicyRunner:
         # Depth encoder
         self.if_depth = self.depth_encoder_cfg["if_depth"]
         if self.if_depth:
-            depth_backbone = DepthOnlyFCBackbone58x87(env.cfg.env.n_proprio, 
-                                                    self.policy_cfg["scan_encoder_dims"][-1], 
-                                                    self.depth_encoder_cfg["hidden_dims"],
-                                                    )
-            depth_encoder = RecurrentDepthBackbone(depth_backbone, env.cfg).to(self.device)
+            # depth_backbone = DepthOnlyFCBackbone58x87(env.cfg.env.n_proprio, 
+            #                                         self.policy_cfg["scan_encoder_dims"][-1], 
+            #                                         self.depth_encoder_cfg["hidden_dims"],
+            #                                         )
+            depth_backbone = DepthConv3DBackbone(self.policy_cfg["scan_encoder_dims"][-1], output_activation=None)
+            # depth_encoder = RecurrentDepthBackbone(depth_backbone, env.cfg).to(self.device)
+            spf = env.dt * env.cfg.depth.update_interval
+            # fps = 1 / (env.dt * env.cfg.depth.update_interval)
+            time_range = env.cfg.depth.buffer_len
+            window = time_range * spf # 1s
+            depth_encoder = EnhancedTemporalBackbone(depth_backbone, env.cfg, time_range, window).to(self.device)
             depth_actor = deepcopy(actor_critic.actor)
         else:
             depth_encoder = None
@@ -241,8 +247,13 @@ class OnPolicyRunner:
         cur_episode_length = torch.zeros(self.env.num_envs, dtype=torch.float, device=self.device)
 
         obs = self.env.get_observations()   # initial observation
+        prop_buffer = torch.stack([obs[:, :self.env.cfg.env.n_proprio]] * self.env.cfg.depth.buffer_len, dim=1)  # 初始化为相同的 obs_prop_depth
+        batch_size, _, _ = prop_buffer.shape
+        scan_prop_buffer = torch.zeros(batch_size, self.env.cfg.depth.buffer_len, self.env.cfg.env.n_proprio + 32, device=self.device)  # 初始化为零张量
+        scan_prop_buffer[:, :, :self.env.cfg.env.n_proprio] = obs[:, :self.env.cfg.env.n_proprio].unsqueeze(1).repeat(1, self.env.cfg.depth.buffer_len, 1)
         infos = {}  # additional information such as depth and delta_yaw_ok
-        infos["depth"] = self.env.depth_buffer.clone().to(self.device)[:, -1] if self.if_depth else None # get the latest depth image in all envs ([envs, 1, 58, 87])
+        # infos["depth"] = self.env.depth_buffer.clone().to(self.device)[:, -1] if self.if_depth else None # get the latest depth image in all envs ([envs, 1, 58, 87])
+        infos["depth"] = self.env.depth_buffer.clone().to(self.device) if self.if_depth else None # get the latest depth image in all envs ([envs, T, 58, 87]) T = buffer_len = 10
         infos["delta_yaw_ok"] = torch.ones(self.env.num_envs, dtype=torch.bool, device=self.device)
         # set model to train mode
         self.alg.depth_encoder.train()
@@ -265,11 +276,16 @@ class OnPolicyRunner:
                     # if use_camera
                     with torch.no_grad():
                         # infer scandots latent with teacher actor
-                        scandots_latent = self.alg.actor_critic.actor.infer_scandots_latent(obs)
+                        scandots_latent = self.alg.actor_critic.actor.infer_scandots_latent(obs)    # [envs, 32]
                     scandots_latent_buffer.append(scandots_latent)
-                    obs_prop_depth = obs[:, :self.env.cfg.env.n_proprio].clone()
+                    obs_prop_depth = obs[:, :self.env.cfg.env.n_proprio]
                     obs_prop_depth[:, 6:8] = 0
-                    depth_latent_and_yaw = self.alg.depth_encoder(infos["depth"].clone(), obs_prop_depth)  # clone is crucial to avoid in-place operation
+                    prop_buffer = torch.cat((prop_buffer[:, 1:, :], obs_prop_depth.unsqueeze(1)), dim=1)
+                    # TODO mse of ypred and scan_prop_buffer
+                    new_entry = torch.cat((obs_prop_depth, scandots_latent.detach()), dim=-1)  # [B, n_proprio + scandots_latent_dim]
+                    scan_prop_buffer = torch.cat([scan_prop_buffer[:, 1:, :], new_entry.unsqueeze(1)], dim=1)  # [B, T, n_proprio + scandots_latent_dim]
+                    # depth_latent_and_yaw = self.alg.depth_encoder(infos["depth"].clone(), obs_prop_depth)  # clone is crucial to avoid in-place operation
+                    depth_latent_and_yaw, yPred, signal = self.alg.depth_encoder(infos["depth"].clone(), prop_buffer)  # clone is crucial to avoid in-place operation
                     
                     depth_latent = depth_latent_and_yaw[:, :-2]
                     yaw = 1.5*depth_latent_and_yaw[:, -2:]
@@ -325,9 +341,12 @@ class OnPolicyRunner:
             actions_student_buffer = torch.cat(actions_student_buffer, dim=0)
             yaw_buffer_student = torch.cat(yaw_buffer_student, dim=0)
             yaw_buffer_teacher = torch.cat(yaw_buffer_teacher, dim=0)
-            # depth_actor_loss, yaw_loss = self.alg.update_depth_actor(actions_student_buffer, actions_teacher_buffer, yaw_buffer_student, yaw_buffer_teacher)
+            depth_actor_loss, yaw_loss = self.alg.update_depth_actor(actions_student_buffer, actions_teacher_buffer, yaw_buffer_student, yaw_buffer_teacher)
 
-            depth_encoder_loss, depth_actor_loss, yaw_loss = self.alg.update_depth_both(depth_latent_buffer, scandots_latent_buffer, actions_student_buffer, actions_teacher_buffer, yaw_buffer_student, yaw_buffer_teacher)
+            # scan_prop_buffer = scan_prop_buffer.reshape(scan_prop_buffer.shape[0], (self.env.cfg.depth.buffer_len*(self.env.cfg.env.n_proprio + 32)))
+            # depth_encoder_loss, depth_actor_loss, yaw_loss = self.alg.update_depth_PAE(yPred, scan_prop_buffer, actions_student_buffer, actions_teacher_buffer, yaw_buffer_student, yaw_buffer_teacher, self.env.cfg.depth.buffer_len, self.env.cfg.env.n_proprio)
+
+            # depth_encoder_loss, depth_actor_loss, yaw_loss = self.alg.update_depth_both(depth_latent_buffer, scandots_latent_buffer, actions_student_buffer, actions_teacher_buffer, yaw_buffer_student, yaw_buffer_teacher)
             stop = time.time()
             learn_time = stop - start
 

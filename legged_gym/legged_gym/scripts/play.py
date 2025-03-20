@@ -111,6 +111,7 @@ def play(args):
     env: LeggedRobot
     env, _ = task_registry.make_env(name=args.task, args=args, env_cfg=env_cfg)
     obs = env.get_observations()
+    prop_buffer = torch.stack([obs[:, :env.cfg.env.n_proprio]] * env.cfg.depth.buffer_len, dim=1)
 
     if args.web:
         web_viewer.setup(env)
@@ -133,7 +134,7 @@ def play(args):
 
     actions = torch.zeros(env.num_envs, 12, device=env.device, requires_grad=False)
     infos = {}
-    infos["depth"] = env.depth_buffer.clone().to(ppo_runner.device)[:, -1] if ppo_runner.if_depth else None
+    infos["depth"] = env.depth_buffer.clone().to(ppo_runner.device) if ppo_runner.if_depth else None
 
     for i in range(10*int(env.max_episode_length)):
         if args.use_jit:
@@ -152,7 +153,9 @@ def play(args):
                 if infos["depth"] is not None:
                     obs_student = obs[:, :env.cfg.env.n_proprio].clone()
                     obs_student[:, 6:8] = 0
-                    depth_latent_and_yaw = depth_encoder(infos["depth"], obs_student)
+                    prop_buffer = torch.cat((prop_buffer[:, 1:, :], obs_student.unsqueeze(1)), dim=1)
+                    # depth_latent_and_yaw = depth_encoder(infos["depth"], obs_student)
+                    depth_latent_and_yaw, yPred, signal = depth_encoder(infos["depth"].clone(), prop_buffer)
                     depth_latent = depth_latent_and_yaw[:, :-2]
                     yaw = depth_latent_and_yaw[:, -2:]
                 # use camera but no depth

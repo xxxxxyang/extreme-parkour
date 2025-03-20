@@ -3,7 +3,7 @@ import torch.nn as nn
 from .PAE import Model
 
 class EnhancedTemporalBackbone(nn.Module):
-    def __init__(self, base_backbone, env_cfg, time_range, window):
+    def __init__(self, base_backbone, env_cfg, time_range, window=1):
         super().__init__()
         activation = nn.ELU()
         # 基础特征提取
@@ -36,17 +36,19 @@ class EnhancedTemporalBackbone(nn.Module):
         """
         B, T, H, W = depth_seq.shape
 
-        # 逐帧特征提取
-        spatial_latent = []
-        for t in range(T):
-            latent = self.base_backbone(depth_seq[:, t])  # [B, 32]
-            spatial_latent.append(latent)
-        spatial_latent = torch.stack(spatial_latent, dim=1)  # [B, T, 32]
+        # # 逐帧特征提取
+        # spatial_latent = []
+        # for t in range(T):
+        #     latent = self.base_backbone(depth_seq[:, t])  # [B, 32]
+        #     spatial_latent.append(latent)
+        # spatial_latent = torch.stack(spatial_latent, dim=1)  # [B, T, 32]
+        # 使用 3D CNN 提取特征
+        spatial_latent = self.base_backbone(depth_seq)  # [B, T, 32]
 
         # Period latent 提取
         y, latent, period_signal, _= self.PAE(
             torch.cat([spatial_latent.permute(0, 2, 1), proprio_seq.permute(0, 2, 1)], dim=1)
-        )   # latent: [B, T, 32]
+        )   # latent: [B, 32, T] y: [B, 32+n_proprio, T]
 
         # rnn
         depth_latent = latent[:, :, -1] # get the last time step [B, 32]
@@ -55,10 +57,56 @@ class EnhancedTemporalBackbone(nn.Module):
         # output
         depth_latent = self.motion_constraint(depth_latent.squeeze(1))
 
-        return depth_latent, y, period_signal
+        return depth_latent, y, period_signal   # [B, 32+2], [B, (32+n_proprio) * T], [B, 32+n_proprio, T]
     
     def detach_hidden_states(self):
         self.hidden_states = self.hidden_states.detach().clone()
+
+
+class DepthConv3DBackbone(nn.Module):
+    def __init__(self, scandots_output_dim, output_activation=None, num_frames=1):
+        super().__init__()
+
+        # self.num_frames = num_frames    # number of frames to be stacked (equal to depth_buffer_len)
+        activation = nn.ELU()
+
+        # 3D CNN 模块
+        self.image_compression = nn.Sequential(
+            # 输入: [B, T, H, W] -> [B, 1, T, H, W]
+            nn.Conv3d(in_channels=1, out_channels=scandots_output_dim//2, kernel_size=(3, 5, 5), stride=(1, 2, 2), padding=(1, 2, 2)),
+            # 输出: [B, 16, T, H/2, W/2]
+            nn.ELU(),
+            nn.MaxPool3d(kernel_size=(1, 2, 2), stride=(1, 2, 2)),
+            # 输出: [B, 16, T, H/4, W/4]
+            nn.Conv3d(in_channels=16, out_channels=scandots_output_dim, kernel_size=(3, 3, 3), stride=(1, 1, 1), padding=(1, 1, 1)),
+            # 输出: [B, 32, T, H/4, W/4]
+            nn.ELU(),
+            nn.AdaptiveAvgPool3d((None, 1, 1)),  # 压缩 H 和 W 维度
+            # 输出: [B, 32, T, 1, 1]
+            nn.Flatten(start_dim=3),  # 展平 H 和 W 维度
+            # 输出: [B, 32, T, 1]
+        )
+
+        if output_activation == "tanh":
+            self.output_activation = nn.Tanh()
+        else:
+            self.output_activation = activation
+
+    def forward(self, depth_seq: torch.Tensor):
+        """
+        depth_seq: [B, T, H, W] 时序深度图
+        输出: [B, T, 32]
+        """
+        # 添加通道维度 [B, T, H, W] -> [B, 1, T, H, W]
+        depth_seq = depth_seq.unsqueeze(1)
+        
+        # 通过 3D CNN 提取特征
+        compressed = self.image_compression(depth_seq)  # [B, 32, T]
+        compressed = compressed.squeeze(-1)  # [B, 32, T]
+        # 激活函数
+        latent = self.output_activation(compressed.permute(0, 2, 1))  # [B, T, 32]
+        
+        return latent
     
 
 # import torch

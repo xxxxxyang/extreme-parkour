@@ -159,7 +159,8 @@ class LeggedRobot(BaseTask):
             self.privileged_obs_buf = torch.clip(self.privileged_obs_buf, -clip_obs, clip_obs)
         self.extras["delta_yaw_ok"] = self.delta_yaw < 0.6
         if self.cfg.depth.use_camera and self.global_counter % self.cfg.depth.update_interval == 0:
-            self.extras["depth"] = self.depth_buffer[:, -2]  # have already selected last one
+            # self.extras["depth"] = self.depth_buffer[:, -2]  # have already selected last one\
+            self.extras["depth"] = self.depth_buffer
         else:
             self.extras["depth"] = None
         return self.obs_buf, self.privileged_obs_buf, self.rew_buf, self.reset_buf, self.extras

@@ -155,7 +155,8 @@ def play(args):
                     obs_student[:, 6:8] = 0
                     prop_buffer = torch.cat((prop_buffer[:, 1:, :], obs_student.unsqueeze(1)), dim=1)
                     # depth_latent_and_yaw = depth_encoder(infos["depth"], obs_student)
-                    depth_latent_and_yaw, yPred, signal = depth_encoder(infos["depth"].clone(), prop_buffer)
+                    # depth_latent_and_yaw, yPred, signal = depth_encoder(infos["depth"].clone(), prop_buffer)
+                    depth_latent_and_yaw = depth_encoder(infos["depth"].clone(), prop_buffer)
                     depth_latent = depth_latent_and_yaw[:, :-2]
                     yaw = depth_latent_and_yaw[:, -2:]
                 # use camera but no depth

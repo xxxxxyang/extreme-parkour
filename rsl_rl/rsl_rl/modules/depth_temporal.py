@@ -45,19 +45,25 @@ class EnhancedTemporalBackbone(nn.Module):
         # 使用 3D CNN 提取特征
         spatial_latent = self.base_backbone(depth_seq)  # [B, T, 32]
 
-        # Period latent 提取
-        y, latent, period_signal, _= self.PAE(
-            torch.cat([spatial_latent.permute(0, 2, 1), proprio_seq.permute(0, 2, 1)], dim=1)
-        )   # latent: [B, 32, T] y: [B, 32+n_proprio, T]
+        # # Period latent 提取
+        # y, latent, period_signal, _= self.PAE(
+        #     torch.cat([spatial_latent.permute(0, 2, 1), proprio_seq.permute(0, 2, 1)], dim=1)
+        # )   # latent: [B, 32, T] y: [B, 32+n_proprio, T]
+
+        # # rnn
+        # depth_latent = latent[:, :, -1] # get the last time step [B, 32]
+        # depth_latent, self.hidden_states = self.rnn(depth_latent[:, None, :], self.hidden_states)
 
         # rnn
-        depth_latent = latent[:, :, -1] # get the last time step [B, 32]
+        depth_latent = spatial_latent[:, -1] # get the last time step [B, 32]
         depth_latent, self.hidden_states = self.rnn(depth_latent[:, None, :], self.hidden_states)
+
 
         # output
         depth_latent = self.motion_constraint(depth_latent.squeeze(1))
 
-        return depth_latent, y, period_signal   # [B, 32+2], [B, (32+n_proprio) * T], [B, 32+n_proprio, T]
+        # return depth_latent, y, period_signal   # [B, 32+2], [B, (32+n_proprio) * T], [B, 32+n_proprio, T]
+        return depth_latent
     
     def detach_hidden_states(self):
         self.hidden_states = self.hidden_states.detach().clone()

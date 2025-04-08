@@ -284,8 +284,8 @@ class OnPolicyRunner:
                     # TODO mse of ypred and scan_prop_buffer
                     new_entry = torch.cat((obs_prop_depth, scandots_latent.detach()), dim=-1)  # [B, n_proprio + scandots_latent_dim]
                     scan_prop_buffer = torch.cat([scan_prop_buffer[:, 1:, :], new_entry.unsqueeze(1)], dim=1)  # [B, T, n_proprio + scandots_latent_dim]
-                    # depth_latent_and_yaw = self.alg.depth_encoder(infos["depth"].clone(), obs_prop_depth)  # clone is crucial to avoid in-place operation
-                    depth_latent_and_yaw, yPred, signal = self.alg.depth_encoder(infos["depth"].clone(), prop_buffer)  # clone is crucial to avoid in-place operation
+                    # depth_latent_and_yaw, yPred, signal = self.alg.depth_encoder(infos["depth"].clone(), obs_prop_depth)  # clone is crucial to avoid in-place operation
+                    depth_latent_and_yaw = self.alg.depth_encoder(infos["depth"].clone(), prop_buffer)  # clone is crucial to avoid in-place operation
                     
                     depth_latent = depth_latent_and_yaw[:, :-2]
                     yaw = 1.5*depth_latent_and_yaw[:, -2:]

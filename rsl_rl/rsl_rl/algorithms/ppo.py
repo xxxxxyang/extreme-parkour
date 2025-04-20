@@ -40,6 +40,12 @@ from rsl_rl.utils import unpad_trajectories
 
 
 class RMS(object):
+    """
+    class for computing running mean and std
+    M: running mean
+    S: running std
+    n: number (incremental)
+    """
     def __init__(self, device, epsilon=1e-4, shape=(1,)):
         self.M = torch.zeros(shape, device=device)
         self.S = torch.ones(shape, device=device)

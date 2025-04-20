@@ -57,6 +57,10 @@ python play.py --exptid baset0 --proj_name test --device cuda:0 --no_wandb --web
 ```bash
 python play.py --exptid test-0 --device cuda:0 --delay --use_camera --web --no_wandb (--noise)
 ```
+- 运行关于最终策略的评估
+```bash
+python evaluate.py --exptid test-0 --device cuda:0 --delay --use_camera --no_wandb (--noise)
+```
 
 *关于 flask 服务器*：
 当 host 设置为 `0.0.0.0` ，可以通过 `http://service-ip:port/` 访问根URL
@@ -67,14 +71,12 @@ python play.py --exptid test-0 --device cuda:0 --delay --use_camera --web --no_w
 在每一个 env 中，agent 的 command 都是持续该 episode 始终的吗，那与实际的操控是否有差别；如果有，通过什么样 randomization 可以 bridge 这种 gap
 env 中的命令是一个四元组 [lin_vel_x, lin_vel_y, ang_vel_yaw, heading]
 
+**仿真中如何控制命令的？**
+
 ## headless
 
 在非无头模式下，即 headless=False 的情况下，gymapi.create_viewer 会创建出一个可视化窗口以观察仿真
 
-## 控制与命令方面
-
-最后的策略是通过什么命令控制的，遥控器吗，遥控器的命令是位置命令还是线速度命令还是方向命令
-在每一个 env 中，agent 的 command 都是持续该 episode 始终的吗，那与实际的操控是否有差别；如果有，通过什么样 randomization 可以 bridge 这种 gap
 
 ## 实验平台
 
@@ -82,11 +84,30 @@ unitree a1/go1
 
 ## 相机方面
 
-深度相机
+深度相机 depth_camera 相关
 
-如何添加一个 RGBD 相机？
+###  legged_robot.py:
+- self.resize_transform = torchvision.transforms.Resize((self.cfg.depth.resized[1], self.cfg.depth.resized[0]), interpolation=torchvision.transforms.InterpolationMode.BICUBIC) 将深度相机获取的深度图像进行裁剪并进行插值以防止丢失过多的信息
+- **为深度图像添加噪声**
+- *深度缓冲区的作用*：保存观察到的深度图像，在reset等情况下更新；update_interval 的作用为降低深度图像更新的频率，降低计算开销，若 update_interval = 5 表示每 5 steps 更新一次 能否用 update_interval 模拟深度图像延迟
 
-为什么启用相机后要修改 terrain 中的 y_range？
+去噪方法：
+需要研究现在的图像帧率
+
+### legged_robot_config
+- class depth_encoder: 设置在使用深度相机是训练的算法参数
+- 
+
+
+### on_policy_runner.py
+- learn_vision 中为什么只进行 depth_actor 的参数更新，而不进行 encoder 的参数更新，好像也没有加载其预训练的模型吧；以及为什么 actions_teacher 不用 scandots；论文中应该是用的吧
+- 在
+
+
+
+**为什么启用相机后要修改 terrain 中的 y_range**
+**如何进行深度相机的域随机化**
+**为什么启用相机后要修改 terrain 中的 y_range？**
 
 ## 地形方面
 
@@ -194,30 +215,5 @@ iteration step episode
 
 mean_reward_task 是关键，即排除探索奖励的部分，反应出该 agent 在当前任务中的执行能力
 
-
-
-## 视觉相机方面
-
-深度相机 depth_camera 相关
-###  legged_robot.py:
-- self.resize_transform = torchvision.transforms.Resize((self.cfg.depth.resized[1], self.cfg.depth.resized[0]), interpolation=torchvision.transforms.InterpolationMode.BICUBIC) 将深度相机获取的深度图像进行裁剪并进行插值以防止丢失过多的信息
-- **为深度图像添加噪声**
-- *深度缓冲区的作用*：保存观察到的深度图像，在reset等情况下更新；update_interval 的作用为降低深度图像更新的频率，降低计算开销，若 update_interval = 5 表示每 5 steps 更新一次 能否用 update_interval 模拟深度图像延迟
-
-去噪方法：
-需要研究现在的图像帧率
-
-### legged_robot_config
-- class depth_encoder: 设置在使用深度相机是训练的算法参数
-- 
-
-
-### on_policy_runner.py
-- learn_vision 中为什么只进行 depth_actor 的参数更新，而不进行 encoder 的参数更新，好像也没有加载其预训练的模型吧；以及为什么 actions_teacher 不用 scandots；论文中应该是用的吧
-- 在
-
-
-
-*为什么启用相机后要修改 terrain 中的 y_range*
 
 

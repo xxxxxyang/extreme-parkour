@@ -101,7 +101,7 @@ def play(args):
     
     env_cfg.terrain.terrain_proportions = list(env_cfg.terrain.terrain_dict.values())
     env_cfg.terrain.curriculum = False
-    env_cfg.terrain.max_difficulty = False
+    env_cfg.terrain.max_difficulty = True
     
     env_cfg.depth.angle = [0, 1]
     env_cfg.noise.add_noise = True
@@ -110,6 +110,10 @@ def play(args):
     env_cfg.domain_rand.push_interval_s = 6
     env_cfg.domain_rand.randomize_base_mass = False
     env_cfg.domain_rand.randomize_base_com = False
+
+    if args.noise:
+        # add depth noise
+        env_cfg.domain_rand.randomize_depth_noise = True
 
     depth_latent_buffer = []
     # prepare environment
@@ -144,6 +148,8 @@ def play(args):
     infos = {}
     infos["depth"] = env.depth_buffer.clone().to(ppo_runner.device)[:, -1] if ppo_runner.if_depth else None
 
+
+    # experiment to test the ability of the policy
     for i in tqdm(range(1500)):
 
         if env.cfg.depth.use_camera:
@@ -155,7 +161,7 @@ def play(args):
                 depth_latent = depth_latent_and_yaw[:, :-2]
                 yaw = depth_latent_and_yaw[:, -2:]
             obs[:, 6:8] = 1.5*yaw
-                
+
         else:
             depth_latent = None
 
@@ -203,8 +209,8 @@ def play(args):
     num_waypoints_mean = np.mean(np.array(num_waypoints_buffer).astype(float)/7.0)
     num_waypoints_std = np.std(np.array(num_waypoints_buffer).astype(float)/7.0)
 
-    # time_to_fall_mean = statistics.mean(time_to_fall_buffer)
-    # time_to_fall_std = statistics.stdev(time_to_fall_buffer)
+    time_to_fall_mean = statistics.mean(time_to_fall_buffer)
+    time_to_fall_std = statistics.stdev(time_to_fall_buffer)
 
     edge_violation_mean = np.mean(edge_violation_buffer)
     edge_violation_std = np.std(edge_violation_buffer)
@@ -212,7 +218,7 @@ def play(args):
     print("Mean reward: {:.2f}$\pm${:.2f}".format(rew_mean, rew_std))
     print("Mean episode length: {:.2f}$\pm${:.2f}".format(len_mean, len_std))
     print("Mean number of waypoints: {:.2f}$\pm${:.2f}".format(num_waypoints_mean, num_waypoints_std))
-    # print("Mean time to fall: {:.2f}$\pm${:.2f}".format(time_to_fall_mean, time_to_fall_std))
+    print("Mean time to fall: {:.2f}$\pm${:.2f}".format(time_to_fall_mean, time_to_fall_std))
     print("Mean edge violation: {:.2f}$\pm${:.2f}".format(edge_violation_mean, edge_violation_std))
 
 

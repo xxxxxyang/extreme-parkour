@@ -585,15 +585,15 @@ class LeggedRobot(BaseTask):
             self.delta_yaw = self.target_yaw - self.yaw
             self.delta_next_yaw = self.next_target_yaw - self.yaw
         obs_buf = torch.cat((#skill_vector, 
-                            self.base_ang_vel  * self.obs_scales.ang_vel,   #[1,3]
-                            imu_obs,    #[1,2]
-                            0*self.delta_yaw[:, None], 
-                            self.delta_yaw[:, None],
-                            self.delta_next_yaw[:, None],
-                            0*self.commands[:, 0:2], 
-                            self.commands[:, 0:1],  #[1,1]
-                            (self.env_class != 17).float()[:, None], 
-                            (self.env_class == 17).float()[:, None],
+                            self.base_ang_vel  * self.obs_scales.ang_vel,   # [num_envs, 3]
+                            imu_obs,                                        # [num_envs, 2]
+                            0*self.delta_yaw[:, None],                      # [num_envs, 1]
+                            self.delta_yaw[:, None],                        # [num_envs, 1]
+                            self.delta_next_yaw[:, None],                   # [num_envs, 1]
+                            0*self.commands[:, 0:2],                        # [num_envs, 2]
+                            self.commands[:, 0:1],                          # [num_envs, 1]
+                            (self.env_class != 17).float()[:, None],        # [num_envs, 1] 
+                            (self.env_class == 17).float()[:, None],        # [num_envs, 1]
                             self.reindex((self.dof_pos - self.default_dof_pos_all) * self.obs_scales.dof_pos),
                             self.reindex(self.dof_vel * self.obs_scales.dof_vel),
                             self.reindex(self.action_history_buf[:, -1]),
@@ -670,7 +670,7 @@ class LeggedRobot(BaseTask):
         cam_target = gymapi.Vec3(lookat[0], lookat[1], lookat[2])
         self.gym.viewer_camera_look_at(self.viewer, None, cam_pos, cam_target)
 
-    #------------- Callbacks --------------
+    ################## Callbacks ##################
     def _process_rigid_shape_props(self, props, env_id):
         """ Callback allowing to store/change/randomize the rigid shape properties of each environment.
             Called During environment creation.
@@ -898,7 +898,7 @@ class LeggedRobot(BaseTask):
         self.cur_goals = self._gather_cur_goals()
         self.next_goals = self._gather_cur_goals(future=1)
 
-    #----------------------------------------
+    ################## init ##################
     def _init_buffers(self):
         """ Initialize torch tensors which will contain simulation states and processed quantities
         """
@@ -1071,7 +1071,7 @@ class LeggedRobot(BaseTask):
         self.x_edge_mask = torch.tensor(self.terrain.x_edge_mask).view(self.terrain.tot_rows, self.terrain.tot_cols).to(self.device)
 
 
-    def attach_camera(self, i, env_handle, actor_handle):
+    def _attach_camera(self, i, env_handle, actor_handle):
         if self.cfg.depth.use_camera:
             config = self.cfg.depth
             camera_props = gymapi.CameraProperties()
@@ -1198,7 +1198,7 @@ class LeggedRobot(BaseTask):
             self.envs.append(env_handle)
             self.actor_handles.append(anymal_handle)
             
-            self.attach_camera(i, env_handle, anymal_handle)
+            self._attach_camera(i, env_handle, anymal_handle)
 
             self.mass_params_tensor[i, :] = torch.from_numpy(mass_params).to(self.device).to(torch.float)
         if self.cfg.domain_rand.randomize_friction:
@@ -1443,7 +1443,6 @@ class LeggedRobot(BaseTask):
         return heights.view(self.num_envs, -1) * self.terrain.cfg.vertical_scale
 
     ################## parkour rewards ##################
-
     def _reward_tracking_goal_vel(self):
         norm = torch.norm(self.target_pos_rel, dim=-1, keepdim=True)
         target_vec_norm = self.target_pos_rel / (norm + 1e-5)

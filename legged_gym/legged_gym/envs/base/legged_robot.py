@@ -53,7 +53,7 @@ from tqdm import tqdm
 import cv2
 import matplotlib.pyplot as plt
 
-# 四元数转换为欧拉角
+# refine the quaternion to euler conversion function
 def euler_from_quaternion(quat_angle):
         """
         Convert a quaternion into euler angles (roll, pitch, yaw)
@@ -945,7 +945,6 @@ class LeggedRobot(BaseTask):
             str_rng = self.cfg.domain_rand.motor_strength_range
             self.motor_strength = (str_rng[1] - str_rng[0]) * torch.rand(2, self.num_envs, self.num_actions, dtype=torch.float, device=self.device, requires_grad=False) + str_rng[0]
         else:
-            #TODO: add motor strength to gains directly
             self.motor_strength = torch.full((2, self.num_envs, self.num_actions), self.cfg.domain_rand.static_motor_strength, dtype=torch.float, device=self.device, requires_grad=False)
         if self.cfg.env.history_encoding:
             self.obs_history_buf = torch.zeros(self.num_envs, self.cfg.env.history_len, self.cfg.env.n_proprio, device=self.device, dtype=torch.float)

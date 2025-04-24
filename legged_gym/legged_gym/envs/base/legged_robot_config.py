@@ -331,6 +331,24 @@ class LeggedRobotCfg(BaseConfig):
         # depth_camera_delay_view = 1
         # depth_camera_buf_len = 8
 
+        contour_threshold = 0.1
+        stereo_far_distance = 0.4
+        stereo_min_distance = -0.4
+        stereo_far_noise_range = 0.1
+        stereo_near_noise_range = 0.1
+        stereo_full_block_values = [0.1, 0.2]
+        stereo_full_block_artifacts_prob = 0.2  # probability of stereo full block artifacts
+        stereo_full_block_height_mean_std = [10, 30]
+        stereo_full_block_width_mean_std = [10, 50]
+        stereo_half_block_spark_prob = 0.2 # probability of stereo half block artifacts
+        stereo_half_block_value = 0.2
+
+        sky_artifacts_far_distance = 0.45
+        sky_artifacts_values = [0.1, 0.2]
+        sky_artifacts_prob = 0.2  # probability of sky artifacts
+        sky_artifacts_height_mean_std = [10, 30]
+        sky_artifacts_width_mean_std = [10, 50]
+
         
     class rewards:
         class scales:

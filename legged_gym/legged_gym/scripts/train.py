@@ -52,6 +52,7 @@ def train(args):
         args.rows = 10
         args.cols = 8
         args.num_envs = 4
+        torch.set_printoptions(threshold=float('inf'))
     else:
         mode = "online"
     

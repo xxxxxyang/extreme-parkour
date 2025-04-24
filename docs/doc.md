@@ -223,7 +223,7 @@ mean_reward_task 是关键，即排除探索奖励的部分，反应出该 agent
 ###  legged_robot.py:
 - self.resize_transform = torchvision.transforms.Resize((self.cfg.depth.resized[1], self.cfg.depth.resized[0]), interpolation=torchvision.transforms.InterpolationMode.BICUBIC) 将深度相机获取的深度图像进行裁剪并进行插值以防止丢失过多的信息
 - **为深度图像添加噪声**
-- *深度缓冲区的作用*：保存观察到的深度图像，在reset等情况下更新；update_interval 的作用为降低深度图像更新的频率，降低计算开销，若 update_interval = 5 表示每 5 steps 更新一次 能否用 update_interval 模拟深度图像延迟
+- *深度缓冲区的作用*：保存观察到的深度图像，在reset等情况下更新；update_interval 的作用为降低深度图像更新的频率，降低计算开销，若 update_interval = 5 表示每 5 steps 更新一次 **能否用 update_interval 模拟深度图像延迟？**
 
 去噪方法：
 需要研究现在的图像帧率
@@ -251,3 +251,7 @@ mean_reward_task 是关键，即排除探索奖励的部分，反应出该 agent
 
 思路：结合多模态的信息，增强视觉；使用时序的视觉处理增强预测能力
 主要想要解决的问题：在某一帧出现较大的视觉误差或者噪声的时候能够尽可能的消除噪声的影响
+
+## 4.21 查看 Robot Parkour Learning
+
+重建的时候可以考虑使用点云计算损失，点云相对深度图像的数据量增大3倍，但处理点云是由于并非结构数据会耗费更多计算量
